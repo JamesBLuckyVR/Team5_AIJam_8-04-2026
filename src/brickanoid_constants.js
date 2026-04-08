@@ -1,7 +1,7 @@
 export const COLS = 10;
 export const ROWS = 6;
 export const BRICK_W = 56;
-export const BRICK_H = 18;
+export const BRICK_H = 24;
 export const BRICK_GAP = 3;
 export const CANVAS_W = 620;
 export const CANVAS_H = 740;
