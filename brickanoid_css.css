@@ -1,2 +1,171 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #060918; }
+
+/* ── Layout ── */
+#app {
+  display: flex;
+  background: #060918;
+  min-height: 100vh;
+  font-family: monospace;
+  color: #cdd6f4;
+  user-select: none;
+}
+
+/* ── Side Panel ── */
+#side-panel {
+  width: 220px;
+  background: #0d1130;
+  border-right: 1px solid #1e2a5e;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tabs { display: flex; background: #060918; border-radius: 8px; padding: 3px; gap: 3px; }
+.tab  { flex: 1; text-align: center; padding: 5px 0; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.tab.active      { background: #1e2a5e; color: #00e5ff; }
+.tab:not(.active) { background: transparent; color: #555; }
+
+/* Section labels */
+.sec-label      { font-size: 11px; color: #7c8bc4; margin-bottom: 5px; }
+.sec-label.cyan { color: #00e5ff; font-weight: 700; }
+.sec-label.pink { color: #ff4d7d; font-weight: 700; }
+
+/* Wager row */
+.wager-row  { display: flex; align-items: center; gap: 4px; }
+.wager-wrap {
+  flex: 1; background: #060918; border: 1px solid #1e2a5e;
+  border-radius: 6px; padding: 6px 8px; display: flex; align-items: center; gap: 6px;
+}
+.dollar { color: #f1c40f; font-size: 15px; }
+#wager-input {
+  background: none; border: none; outline: none;
+  color: #fff; font-family: monospace; font-size: 13px; width: 100%;
+}
+.adj-btn {
+  background: #1e2a5e; border: none; border-radius: 5px;
+  color: #7c8bc4; padding: 6px 7px; cursor: pointer; font-size: 11px; font-family: monospace;
+}
+.adj-btn:hover    { background: #2a3a7e; }
+.adj-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Speed / death selectors */
+.sel-row       { display: flex; gap: 4px; }
+.sel-row.wrap  { flex-wrap: wrap; }
+.sel-btn {
+  flex: 1; text-align: center; padding: 5px 0; border-radius: 5px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  background: #060918; border: 1px solid #1e2a5e; color: #556; font-family: monospace;
+}
+.sel-btn.death-opt { min-width: 36px; font-size: 11px; }
+.sel-btn.on-speed  { background: #00e5ff22; border-color: #00e5ff; color: #00e5ff; }
+.sel-btn.on-death  { background: #ff4d7d22; border-color: #ff4d7d; color: #ff4d7d; }
+
+/* Multiplier box */
+.mult-box { background: #060918; border-radius: 8px; padding: 10px; border: 1px solid #1e2a5e; }
+#mult-val { font-size: 22px; font-weight: 700; color: #f1c40f; }
+.max-line { font-size: 10px; color: #7c8bc4; margin-top: 2px; }
+#max-payout { color: #00ffb3; }
+
+/* Bet button */
+#bet-btn {
+  background: linear-gradient(135deg, #00c2ff, #ff00e5);
+  border: none; border-radius: 8px; padding: 12px 0;
+  color: #fff; font-weight: 800; font-size: 15px;
+  cursor: pointer; letter-spacing: 1px; font-family: monospace;
+}
+#bet-btn:hover { opacity: 0.9; }
+
+/* Balance */
+.bal-label { font-size: 10px; color: #7c8bc4; margin-bottom: 4px; }
+#balance-val {
+  background: #060918; border: 1px solid #1e2a5e;
+  border-radius: 6px; padding: 7px 10px; font-size: 13px; color: #00ffb3; font-weight: 700;
+}
+
+/* Live payout */
+#live-box {
+  background: #060918; border: 1px solid #00ffb3;
+  border-radius: 8px; padding: 10px; text-align: center;
+}
+.live-label { font-size: 10px; color: #7c8bc4; margin-bottom: 3px; }
+#live-val   { font-size: 18px; font-weight: 700; color: #00ffb3; }
+#bricks-prog { font-size: 10px; color: #7c8bc4; margin-top: 2px; }
+
+/* Result card */
+#result-card { border-radius: 8px; padding: 10px; text-align: center; }
+
+/* Fairness badge */
+.fairness {
+  background: #060918; border: 1px solid #1e2a5e; border-radius: 20px;
+  padding: 5px 14px; font-size: 11px; color: #7c8bc4;
+  display: flex; align-items: center; gap: 5px;
+}
+.fair-check { color: #00ffb3; font-size: 13px; }
+
+/* ── Canvas Area ── */
+#canvas-area {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 20px;
+}
+#canvas-wrap  { position: relative; }
+#game-canvas  { display: block; border-radius: 10px; border: 1px solid #1e2a5e; max-width: 100%; }
+.ctrl-hint    { margin-top: 10px; font-size: 11px; color: #2a3a7a; }
+
+/* ── Overlays ── */
+.overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 10px;
+}
+
+/* Splash */
+#splash { background: rgba(6,9,24,0.82); }
+.splash-title {
+  font-size: 32px; font-weight: 800; letter-spacing: 3px;
+  background: linear-gradient(135deg, #00c2ff, #ff00e5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.splash-sub   { font-size: 13px; color: #7c8bc4; margin-top: 8px; }
+.splash-death { font-size: 11px; color: #3a4a8a; margin-top: 16px; }
+.splash-cash  { font-size: 11px; color: #1a6b35; margin-top: 8px; }
+
+/* Death overlay — covers play area only, not cashout zone */
+#death-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 54px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(40,0,0,0.72); border-radius: 10px 10px 0 0; pointer-events: none;
+}
+.death-skull { font-size: 52px; }
+.death-title { font-size: 24px; font-weight: 800; color: #ff4d4d; letter-spacing: 2px; }
+.death-sub   { font-size: 13px; color: #ff8888; margin-top: 6px; }
+
+/* Cashout summary overlay */
+#cashout-overlay { background: rgba(6,9,24,0.88); border-radius: 10px; }
+.cashout-card {
+  background: #0d1130; border: 1px solid #2ecc71; border-radius: 14px;
+  padding: 28px 36px; min-width: 280px; text-align: center;
+  box-shadow: 0 0 40px rgba(46,204,113,0.2);
+}
+.co-title { font-size: 13px; color: #2ecc71; font-weight: 700; letter-spacing: 3px; margin-bottom: 18px; text-transform: uppercase; }
+.co-rows  { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.co-row   { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e2a5e; padding-bottom: 10px; }
+.co-lbl   { font-size: 12px; color: #7c8bc4; }
+.co-val   { font-size: 16px; font-weight: 700; }
+.co-net   { display: flex; justify-content: space-between; align-items: center; }
+.co-net-lbl { font-size: 12px; color: #7c8bc4; }
+.co-net-val { font-size: 18px; font-weight: 800; }
+.co-pct   { font-size: 11px; color: #3a4a8a; margin-bottom: 16px; }
+#rebet-btn {
+  width: 100%; background: linear-gradient(135deg, #00c2ff, #ff00e5);
+  border: none; border-radius: 8px; padding: 11px 0;
+  color: #fff; font-weight: 800; font-size: 14px;
+  cursor: pointer; letter-spacing: 1px; font-family: monospace;
+}
+#rebet-btn:hover { opacity: 0.9; }
+
+/* ── Utility ── */
+.hidden { display: none !important; }

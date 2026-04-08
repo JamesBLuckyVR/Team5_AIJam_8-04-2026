@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brickanoid</title>
+  <link rel="stylesheet" href="brickanoid_css.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Side Panel ── -->
+  <div id="side-panel">
+
+    <div class="tabs">
+      <div class="tab active">Manual</div>
+      <div class="tab">Auto</div>
+    </div>
+
+    <div>
+      <div class="sec-label">Bet Amount</div>
+      <div class="wager-row">
+        <div class="wager-wrap">
+          <span class="dollar">$</span>
+          <input id="wager-input" type="text" value="10.00">
+        </div>
+        <button class="adj-btn" id="half-btn">½</button>
+        <button class="adj-btn" id="double-btn">2×</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label cyan">Ball Speed</div>
+      <div class="sel-row" id="speed-sel"></div>
+    </div>
+
+    <div>
+      <div class="sec-label pink">Deathblocks</div>
+      <div class="sel-row wrap" id="death-sel"></div>
+    </div>
+
+    <div class="mult-box">
+      <div class="sec-label" style="font-size:10px;margin-bottom:4px;">Multiplier</div>
+      <div id="mult-val"></div>
+      <div class="max-line">Max payout: <span id="max-payout"></span></div>
+    </div>
+
+    <button id="bet-btn">BET</button>
+
+    <div>
+      <div class="bal-label">Balance</div>
+      <div id="balance-val"></div>
+    </div>
+
+    <div id="live-box" class="hidden">
+      <div class="live-label">Live Payout</div>
+      <div id="live-val"></div>
+      <div id="bricks-prog"></div>
+    </div>
+
+    <div id="result-card" class="hidden"></div>
+
+    <div style="margin-top:auto;display:flex;justify-content:center;">
+      <div class="fairness">
+        <span class="fair-check">✓</span> Provably Fair
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Canvas Area ── -->
+  <div id="canvas-area">
+    <div id="canvas-wrap">
+      <canvas id="game-canvas" width="620" height="740"></canvas>
+
+      <div id="splash" class="overlay">
+        <div class="splash-title">BRICKANOID</div>
+        <div class="splash-sub">Set your wager and hit BET to play</div>
+        <div class="splash-death">☠ Hidden deathblocks end your round instantly</div>
+        <div class="splash-cash">Drop ball into the cashout zone to collect winnings</div>
+      </div>
+
+      <div id="death-overlay" class="hidden">
+        <div class="death-skull">☠</div>
+        <div class="death-title">DEATHBLOCK HIT</div>
+        <div class="death-sub">Bet lost — better luck next time</div>
+      </div>
+
+      <div id="cashout-overlay" class="overlay hidden">
+        <div class="cashout-card" id="cashout-card"></div>
+      </div>
+    </div>
+    <div class="ctrl-hint">Move mouse or use ← → arrow keys to control paddle</div>
+  </div>
+
+</div>
+
+<script src="brickanoid_constants.js"></script>
+<script src="brickanoid_utils.js"></script>
+<script src="brickanoid_draw.js"></script>
+<script src="brickanoid_app.js"></script>
+</body>
+</html>
