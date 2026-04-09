@@ -71,6 +71,9 @@
   <div id="canvas-area">
     <div id="canvas-wrap">
       <canvas id="game-canvas" width="620" height="740"></canvas>
+      <!-- Transparent 2D canvas on top for HUD text and payout splashes -->
+      <canvas id="hud-canvas" width="620" height="740"
+        style="position:absolute;inset:0;pointer-events:none;border-radius:10px;"></canvas>
       <button id="mute-btn" onclick="toggleMute()" title="Toggle sound">🔊</button>
 
       <div id="splash" class="overlay">
@@ -94,6 +97,9 @@
   </div>
 
 </div>
+
+<!-- Three.js — local copy, no CDN required -->
+<script src="vendor/three.min.js"></script>
 
 <!-- ── Load order matters: settings → engine → art ── -->
 <!-- Game Settings team -->

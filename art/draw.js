@@ -1,241 +1,426 @@
 // =============================================================================
-// CANVAS RENDERER — owned by the Game Art team
+// 3D CANVAS RENDERER — owned by the Game Art team
 // =============================================================================
-// Everything you see on the canvas is drawn here. Change colors, shapes,
-// effects, and animations without touching any game logic.
-// Visual theme: Las Vegas casino — dark glass, gold coins, chrome, crystal.
+// Renders the game using Three.js WebGL into #game-canvas.
+// HUD text (payout splashes, live counter) is drawn on #hud-canvas (2D overlay).
+// The drawFrame(...) signature is identical to the 2D version — engine is untouched.
 // =============================================================================
 
-// ── Per-row material definitions ──────────────────────────────────────────────
-// Inspired by the Vegas strip aesthetic: dark glass architecture, gold coins,
-// silver chrome, deep blue glass, and clear crystal.
-const BRICK_MATERIALS = [
-  // Row 0 — Dark Glass (like the black glass building facade)
-  {
-    base:      "#0b0e1c",
-    mid:       "#1a2240",
-    highlight: "#3a5080",
-    specular:  "#8faad0",
-    rim:       "#4466aa",
-    facet:     "rgba(140,180,240,0.22)",
-    shadow:    "rgba(0,0,0,0.70)",
-    isGem:     true,
-  },
-  // Row 1 — Gold Coin (the flying gold coins in the image)
-  {
-    base:      "#6b4500",
-    mid:       "#b07800",
-    highlight: "#ffd700",
-    specular:  "#fff8cc",
-    rim:       "#ffcc00",
-    facet:     null,
-    shadow:    "rgba(0,0,0,0.50)",
-    isGem:     false,
-  },
-  // Row 2 — Silver Chrome (coin edges, metallic debris)
-  {
-    base:      "#1c1c28",
-    mid:       "#404858",
-    highlight: "#b0bcd0",
-    specular:  "#eef2ff",
-    rim:       "#8899bb",
-    facet:     null,
-    shadow:    "rgba(0,0,0,0.55)",
-    isGem:     false,
-  },
-  // Row 3 — Sapphire Glass (deep blue glass shards)
-  {
-    base:      "#040e38",
-    mid:       "#0a2260",
-    highlight: "#1a66dd",
-    specular:  "#88bbff",
-    rim:       "#2255cc",
-    facet:     "rgba(150,200,255,0.28)",
-    shadow:    "rgba(0,0,0,0.65)",
-    isGem:     true,
-  },
-  // Row 4 — Crystal Clear (bright light streaks from the impact)
-  {
-    base:      "#101828",
-    mid:       "#1e3050",
-    highlight: "#7aaad8",
-    specular:  "#ddeeff",
-    rim:       "#99ccee",
-    facet:     "rgba(210,235,255,0.32)",
-    shadow:    "rgba(0,0,0,0.55)",
-    isGem:     true,
-  },
+// ── 3D Scene state (module-level, initialized once) ───────────────────────────
+let _renderer   = null;
+let _scene      = null;
+let _camera     = null;
+let _ballMesh   = null;
+let _ballLight  = null;
+let _paddleMesh = null;
+let _brickMeshes       = new Map();   // brick id → Mesh
+let _brickReflections  = new Map();   // brick id → reflected Mesh (below floor)
+let _burstParticles = [];       // active death burst particle meshes
+let _coin3DParticles = [];      // active coin burst meshes
+let _hudCanvas  = null;
+let _hudCtx     = null;
+let _lastGs     = null;         // previous gs reference to detect new game
+
+// ── 2D → 3D coordinate helpers ────────────────────────────────────────────────
+// Game X (0…CANVAS_W) → 3D X (−CW/2 … +CW/2)
+// Game Y (0…PLAY_H)   → 3D Z (−PH/2 … +PH/2)  top=far(negative), paddle=near(positive)
+function gx(x) { return x - CANVAS_W / 2; }
+function gz(y) { return y - PLAY_H  / 2; }
+
+// ── Row materials ─────────────────────────────────────────────────────────────
+const ROW_MAT_DEFS = [
+  { color: 0x1a2240, emissive: 0x2244aa, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.7 }, // Dark Glass
+  { color: 0xb07800, emissive: 0xffcc00, emissiveIntensity: 0.6, roughness: 0.2, metalness: 0.9 }, // Gold Coin
+  { color: 0x505868, emissive: 0x8899bb, emissiveIntensity: 0.3, roughness: 0.2, metalness: 0.9 }, // Silver Chrome
+  { color: 0x0a2260, emissive: 0x2255cc, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.6 }, // Sapphire
+  { color: 0x1e3050, emissive: 0x7aaad8, emissiveIntensity: 0.4, roughness: 0.2, metalness: 0.7 }, // Crystal
 ];
 
-// ── Draw a single glossy brick ────────────────────────────────────────────────
-function drawGlossyBrick(ctx, b) {
-  const mat = BRICK_MATERIALS[b.row % BRICK_MATERIALS.length];
-  const { x, y } = b;
-  const w = BRICK_W, h = BRICK_H;
+// ── Lazy scene initialisation ─────────────────────────────────────────────────
+function _initScene(canvas) {
+  if (_renderer) return;
 
-  // 1. Body — radial gradient: bright top-left → dark base color
-  const bodyGrad = ctx.createRadialGradient(
-    x + w * 0.28, y + h * 0.22, 0,
-    x + w * 0.65, y + h * 0.75, w * 0.85
-  );
-  bodyGrad.addColorStop(0,   mat.highlight);
-  bodyGrad.addColorStop(0.4, mat.mid);
-  bodyGrad.addColorStop(1,   mat.shadow);
-  ctx.fillStyle = bodyGrad;
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
+  const THREE = window.THREE;
+  if (!THREE) { console.error("[3D] Three.js not loaded"); return; }
 
-  // 2. Bottom shadow strip
-  const shadowGrad = ctx.createLinearGradient(x, y + h - 6, x, y + h);
-  shadowGrad.addColorStop(0, "transparent");
-  shadowGrad.addColorStop(1, "rgba(0,0,0,0.55)");
-  ctx.fillStyle = shadowGrad;
-  ctx.beginPath(); ctx.roundRect(x, y + h - 6, w, 6, [0, 0, 3, 3]); ctx.fill();
+  try {
+  // Renderer — attach to the existing #game-canvas
+  _renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  _renderer.setSize(CANVAS_W, CANVAS_H, false); // false = don't update CSS, CSS handles it
+  _renderer.shadowMap.enabled = true;
+  _renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 
-  // 3. Specular highlight — bright triangle in top-left
-  const specGrad = ctx.createLinearGradient(x + 2, y + 2, x + w * 0.58, y + h * 0.58);
-  specGrad.addColorStop(0,   mat.specular);
-  specGrad.addColorStop(0.35, "rgba(255,255,255,0.06)");
-  specGrad.addColorStop(1,   "transparent");
-  ctx.fillStyle = specGrad;
-  ctx.beginPath();
-  ctx.moveTo(x + 3,        y + 3);
-  ctx.lineTo(x + w * 0.58, y + 3);
-  ctx.lineTo(x + 3,        y + h * 0.72);
-  ctx.closePath();
-  ctx.fill();
+  // Scene
+  _scene = new THREE.Scene();
+  _scene.background = new THREE.Color(0x07091a);
+  // Light fog — starts much further so bricks are never fogged out
+  _scene.fog = new THREE.Fog(0x07091a, 900, 1600);
 
-  // 4. Top-left rim light
-  ctx.strokeStyle = mat.rim;
-  ctx.lineWidth   = 0.8;
-  ctx.globalAlpha = 0.5;
-  ctx.beginPath();
-  ctx.moveTo(x + 3, y + h - 3);
-  ctx.lineTo(x + 3, y + 3);
-  ctx.lineTo(x + w - 3, y + 3);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  // Camera — positioned above and behind the paddle end, tilted to see the full field
+  // The game field runs from Z=-343 (bricks, far) to Z=343 (cashout, near).
+  // Near-overhead perspective: field reads flat like the 2D version,
+  // but brick/paddle height still gives 3D depth.
+  _camera = new THREE.PerspectiveCamera(52, CANVAS_W / CANVAS_H, 1, 2500);
+  _camera.position.set(0, 1050, 180);
+  _camera.lookAt(0, 0, -80);
 
-  // 5. Diagonal facet line (glass/gem rows)
-  if (mat.isGem && mat.facet) {
-    ctx.strokeStyle = mat.facet;
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(x + w * 0.62, y + 2);
-    ctx.lineTo(x + w - 2,    y + h * 0.65);
-    ctx.stroke();
-  }
+  // ── Lighting ─────────────────────────────────────────────────────────────
+  const ambient = new THREE.AmbientLight(0x112244, 0.8);
+  _scene.add(ambient);
 
-  // 6. Gold/chrome: wide horizontal sheen band across upper third
-  if (!mat.isGem) {
-    const sheenGrad = ctx.createLinearGradient(x, y + 4, x, y + 11);
-    sheenGrad.addColorStop(0,   "rgba(255,255,220,0.42)");
-    sheenGrad.addColorStop(0.5, "rgba(255,255,200,0.58)");
-    sheenGrad.addColorStop(1,   "transparent");
-    ctx.fillStyle = sheenGrad;
-    ctx.beginPath(); ctx.roundRect(x + 2, y + 4, w - 4, 7, 2); ctx.fill();
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+  dirLight.position.set(50, 600, 100);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(1024, 1024);
+  _scene.add(dirLight);
+
+  // Subtle fill light from the front
+  const fillLight = new THREE.DirectionalLight(0x334466, 0.4);
+  fillLight.position.set(0, 100, 400);
+  _scene.add(fillLight);
+
+  // ── Floor — dark navy plane + glowing grid ────────────────────────────────
+  const floorGeo = new THREE.PlaneGeometry(CANVAS_W + 60, PLAY_H + 60);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color:       0x080c20,
+    roughness:   0.25,
+    metalness:   0.75,
+    transparent: true,
+    opacity:     0.78,   // partial transparency so brick reflections below show through
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  _scene.add(floor);
+
+  // Grid lines — teal/blue glow like the reference image
+  const grid = new THREE.GridHelper(Math.max(CANVAS_W, PLAY_H) + 60, 20, 0x0044aa, 0x002266);
+  grid.position.y = 0.5;
+  _scene.add(grid);
+
+  // ── Cashout zone — green lit plane at the near (paddle) end ──────────────
+  const czW = CANVAS_W;
+  const czD = CASHOUT_H;
+  const czGeo = new THREE.PlaneGeometry(czW, czD);
+  const czMat = new THREE.MeshStandardMaterial({
+    color:             0x0d3d1a,
+    emissive:          0x1a7a35,
+    emissiveIntensity: 0.5,
+    roughness:         0.8,
+  });
+  const czMesh = new THREE.Mesh(czGeo, czMat);
+  czMesh.rotation.x = -Math.PI / 2;
+  czMesh.position.set(0, 0.6, gz(PLAY_H) + czD / 2);
+  _scene.add(czMesh);
+
+  // Glowing green edge line separating play area from cashout
+  const edgeGeo = new THREE.BoxGeometry(CANVAS_W, 2, 3);
+  const edgeMat = new THREE.MeshStandardMaterial({
+    color: 0x2ecc71, emissive: 0x2ecc71, emissiveIntensity: 1.5,
+  });
+  const edge = new THREE.Mesh(edgeGeo, edgeMat);
+  edge.position.set(0, 2, gz(PLAY_H));
+  _scene.add(edge);
+
+  // ── Arena walls — left, right, top ────────────────────────────────────────
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2244, emissive: 0x0a1133, emissiveIntensity: 0.3,
+    transparent: true, opacity: 0.55, roughness: 0.4, metalness: 0.5,
+  });
+  const wallH = 40;
+
+  // Left wall
+  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(6, wallH, PLAY_H + 60), wallMat);
+  leftWall.position.set(gx(0) - 3, wallH / 2, 0);
+  _scene.add(leftWall);
+
+  // Right wall
+  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(6, wallH, PLAY_H + 60), wallMat);
+  rightWall.position.set(gx(CANVAS_W) + 3, wallH / 2, 0);
+  _scene.add(rightWall);
+
+  // Top wall
+  const topWall = new THREE.Mesh(new THREE.BoxGeometry(CANVAS_W + 12, wallH, 6), wallMat);
+  topWall.position.set(0, wallH / 2, gz(0) - 3);
+  _scene.add(topWall);
+
+  // Wall glow edge strips (emissive lines along the top of each wall)
+  const stripMat = new THREE.MeshStandardMaterial({ color: 0x2244aa, emissive: 0x2244aa, emissiveIntensity: 1.0 });
+  const lStrip = new THREE.Mesh(new THREE.BoxGeometry(2, 2, PLAY_H + 60), stripMat);
+  lStrip.position.set(gx(0) - 0.5, wallH, 0);
+  _scene.add(lStrip);
+  const rStrip = new THREE.Mesh(new THREE.BoxGeometry(2, 2, PLAY_H + 60), stripMat.clone());
+  rStrip.position.set(gx(CANVAS_W) + 0.5, wallH, 0);
+  _scene.add(rStrip);
+  const tStrip = new THREE.Mesh(new THREE.BoxGeometry(CANVAS_W + 12, 2, 2), stripMat.clone());
+  tStrip.position.set(0, wallH, gz(0) - 0.5);
+  _scene.add(tStrip);
+
+  // ── Ball mesh ─────────────────────────────────────────────────────────────
+  const ballGeo = new THREE.SphereGeometry(BALL_R + 2, 20, 20);
+  const ballMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6,
+    roughness: 0.1, metalness: 0.8,
+  });
+  _ballMesh = new THREE.Mesh(ballGeo, ballMat);
+  _ballMesh.castShadow = true;
+  _ballMesh.visible    = false;
+  _scene.add(_ballMesh);
+
+  // Point light that follows ball for a glow halo effect
+  _ballLight = new THREE.PointLight(0xaaccff, 1.2, 180);
+  _scene.add(_ballLight);
+
+  // ── Paddle mesh ───────────────────────────────────────────────────────────
+  const padGeo = new THREE.BoxGeometry(PADDLE_W, 14, PADDLE_H + 10);
+  const padMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, emissive: 0x88ccff, emissiveIntensity: 1.2,
+    roughness: 0.1, metalness: 0.9,
+  });
+  _paddleMesh = new THREE.Mesh(padGeo, padMat);
+  _paddleMesh.castShadow = true;
+  _scene.add(_paddleMesh);
+
+  // ── HUD canvas ────────────────────────────────────────────────────────────
+  _hudCanvas = document.getElementById("hud-canvas");
+  _hudCtx    = _hudCanvas ? _hudCanvas.getContext("2d") : null;
+
+  console.log("[3D] Scene initialized successfully");
+
+  } catch (err) {
+    console.error("[3D] Scene init failed:", err);
+    _renderer = null; // allow retry or fallback
   }
 }
 
-// ── Main draw function ────────────────────────────────────────────────────────
+// ── Brick mesh management ─────────────────────────────────────────────────────
 
-function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phase) {
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+const BRICK_3D_H = 22; // height of bricks in 3D world units
 
-  // ── Play area background — deep midnight Vegas navy ───────────────────────
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, PLAY_H);
-  bgGrad.addColorStop(0, "#07091a");
-  bgGrad.addColorStop(1, "#0d1130");
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, CANVAS_W, PLAY_H);
+function _makeBrickMat(row, isDeath) {
+  const THREE = window.THREE;
+  if (isDeath) {
+    // Death bricks look identical to normal ones until revealed
+    return _makeBrickMat(row, false);
+  }
+  const def = ROW_MAT_DEFS[row % ROW_MAT_DEFS.length];
+  return new THREE.MeshStandardMaterial({
+    color:             def.color,
+    emissive:          def.emissive,
+    emissiveIntensity: def.emissiveIntensity,
+    roughness:         def.roughness,
+    metalness:         def.metalness,
+  });
+}
 
-  // ── Cashout zone — money green gradient ───────────────────────────────────
-  const czGrad = ctx.createLinearGradient(0, PLAY_H, 0, CANVAS_H);
-  czGrad.addColorStop(0, "#0d3d1a");
-  czGrad.addColorStop(1, "#165c28");
-  ctx.fillStyle = czGrad;
-  ctx.fillRect(0, PLAY_H, CANVAS_W, CASHOUT_H);
+function _initBricks(bricks) {
+  const THREE = window.THREE;
 
-  ctx.font          = "bold 22px sans-serif";
-  ctx.textAlign     = "center";
-  ctx.textBaseline  = "middle";
-  ctx.fillStyle     = "rgba(100,255,140,0.15)";
-  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2 + 1, PLAY_H + CASHOUT_H / 2 + 1);
-  ctx.fillStyle     = "#2ecc71";
-  ctx.shadowColor   = "#2ecc71";
-  ctx.shadowBlur    = 8;
-  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, PLAY_H + CASHOUT_H / 2);
-  ctx.shadowBlur    = 0;
+  // Remove old bricks and their reflections
+  _brickMeshes.forEach(m => _scene.remove(m));
+  _brickMeshes.clear();
+  _brickReflections.forEach(m => _scene.remove(m));
+  _brickReflections.clear();
 
-  // Divider green glow line
-  ctx.strokeStyle = "#2ecc71";
-  ctx.lineWidth   = 2;
-  ctx.shadowColor = "#27ae60";
-  ctx.shadowBlur  = 10;
-  ctx.beginPath(); ctx.moveTo(0, PLAY_H); ctx.lineTo(CANVAS_W, PLAY_H); ctx.stroke();
-  ctx.shadowBlur  = 0;
+  const geo = new THREE.BoxGeometry(BRICK_W - 2, BRICK_3D_H, BRICK_H - 2);
 
-  // Background grid dots — subtle gold tint
-  ctx.fillStyle = "rgba(255,210,80,0.035)";
-  for (let x = 20; x < CANVAS_W; x += 30)
-    for (let y = 20; y < PLAY_H; y += 30) {
-      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
-    }
+  bricks.forEach(b => {
+    // ── Main brick ──────────────────────────────────────────────────────────
+    const mat  = _makeBrickMat(b.row, b.isDeath);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow    = true;
+    mesh.receiveShadow = true;
+    mesh.position.set(gx(b.x + BRICK_W / 2), BRICK_3D_H / 2, gz(b.y + BRICK_H / 2));
+    _scene.add(mesh);
+    _brickMeshes.set(b.id, mesh);
 
-  if (!gs) return;
+    // ── Floor reflection — mirrored copy below Y=0 with low opacity ─────────
+    const srcDef  = ROW_MAT_DEFS[Math.min(b.row, ROW_MAT_DEFS.length - 1)];
+    const refMat  = new THREE.MeshStandardMaterial({
+      color:             srcDef.color,
+      emissive:          srcDef.emissive,
+      emissiveIntensity: srcDef.emissiveIntensity * 0.6,
+      roughness:         srcDef.roughness,
+      metalness:         srcDef.metalness,
+      transparent:       true,
+      opacity:           0.28,
+      depthWrite:        false,   // avoids z-fighting with the transparent floor
+    });
+    const refMesh = new THREE.Mesh(geo, refMat);
+    refMesh.scale.y  = -1;                         // mirror vertically
+    refMesh.position.set(
+      gx(b.x + BRICK_W / 2),
+      -(BRICK_3D_H / 2),                           // centre sits below the floor
+      gz(b.y + BRICK_H / 2)
+    );
+    _scene.add(refMesh);
+    _brickReflections.set(b.id, refMesh);
+  });
+}
 
-  // ── Bricks ────────────────────────────────────────────────────────────────
-  gs.bricks.forEach(b => {
-    if (!b.alive) return;
+// Reusable red material for revealed death bricks
+let _deathRevealMat = null;
+function _getDeathRevealMat() {
+  if (!_deathRevealMat) {
+    _deathRevealMat = new window.THREE.MeshStandardMaterial({
+      color: 0x110000, emissive: 0xff2200, emissiveIntensity: 1.2,
+      roughness: 0.6, metalness: 0.3,
+    });
+  }
+  return _deathRevealMat;
+}
 
-    drawGlossyBrick(ctx, b);
+// ── 3D Death burst ────────────────────────────────────────────────────────────
 
-    // Death brick skull revealed only after hit — location stays hidden
-    if (b.isDeath && b.revealed) {
-      ctx.fillStyle = "rgba(0,0,0,0.80)";
-      ctx.beginPath(); ctx.roundRect(b.x, b.y, BRICK_W, BRICK_H, 3); ctx.fill();
-      ctx.fillStyle    = "#fff";
-      ctx.font         = "bold 13px sans-serif";
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
-      ctx.shadowColor  = "#ff2200";
-      ctx.shadowBlur   = 12;
-      ctx.fillText("☠", b.x + BRICK_W / 2, b.y + BRICK_H / 2);
-      ctx.shadowBlur   = 0;
-    }
+const BURST_COLORS_3D = [0xff2200, 0xff5500, 0xff8800, 0xffcc00, 0xffffff, 0xaaccff];
+const BURST_DURATION  = 1200;
+
+function createDeathBurst(x, y) {
+  const THREE = window.THREE;
+  const particles = [];
+  const geo = new THREE.SphereGeometry(2.5, 8, 8);
+
+  for (let i = 0; i < 42; i++) {
+    const angle  = Math.random() * Math.PI * 2;
+    const vAngle = (Math.random() - 0.3) * Math.PI;
+    const speed  = 60 + Math.random() * 140;
+    const color  = BURST_COLORS_3D[Math.floor(Math.random() * BURST_COLORS_3D.length)];
+    const mat    = new THREE.MeshStandardMaterial({
+      color, emissive: color, emissiveIntensity: 1.5,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(gx(x), BRICK_3D_H / 2, gz(y));
+    _scene.add(mesh);
+
+    particles.push({
+      mesh,
+      vx:   Math.cos(angle) * Math.cos(vAngle) * speed,
+      vy:   Math.abs(Math.sin(vAngle)) * speed + 30,
+      vz:   Math.sin(angle) * Math.cos(vAngle) * speed,
+      life: 0.55 + Math.random() * 0.45,
+    });
+  }
+  return { x, y, born: performance.now(), particles };
+}
+
+function drawDeathBurst(ctx) {
+  // 3D particles are updated in _update3DBursts during each drawFrame
+  // ctx here is the HUD canvas ctx — draw a screen flash on it
+  if (!deathBurst) return;
+  const age = (performance.now() - deathBurst.born) / BURST_DURATION;
+  if (age >= 1 || !ctx) return;
+
+  const flashAlpha = Math.max(0, 0.42 * (1 - age / 0.22));
+  if (flashAlpha > 0) {
+    ctx.globalAlpha = flashAlpha;
+    ctx.fillStyle   = "#aa0000";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function _update3DBursts() {
+  if (!deathBurst) return;
+  const elapsed = (performance.now() - deathBurst.born) / 1000;
+  const age     = elapsed / (BURST_DURATION / 1000);
+
+  deathBurst.particles.forEach(p => {
+    const pAge = age / p.life;
+    if (pAge >= 1) { p.mesh.visible = false; return; }
+    const alpha = Math.max(0, 1 - Math.pow(pAge, 1.5));
+    p.mesh.position.x = gx(deathBurst.x) + p.vx * elapsed;
+    p.mesh.position.y = BRICK_3D_H / 2 + p.vy * elapsed - 0.5 * 120 * elapsed * elapsed;
+    p.mesh.position.z = gz(deathBurst.y) + p.vz * elapsed;
+    p.mesh.material.opacity       = alpha;
+    p.mesh.material.transparent   = alpha < 1;
+    p.mesh.material.emissiveIntensity = 1.5 * alpha;
+    p.mesh.visible = alpha > 0.01;
   });
 
-  // ── Paddle — clean white with subtle glow ─────────────────────────────────
-  const py      = PLAY_H - 44;
-  const pGrad   = ctx.createLinearGradient(paddleX, py, paddleX + PADDLE_W, py + PADDLE_H);
-  pGrad.addColorStop(0,   "#ffffff");
-  pGrad.addColorStop(0.5, "#d8eeff");
-  pGrad.addColorStop(1,   "#a0c4e8");
-  ctx.fillStyle   = pGrad;
-  ctx.shadowColor = "rgba(200,230,255,0.8)";
-  ctx.shadowBlur  = 12;
-  ctx.beginPath(); ctx.roundRect(paddleX, py, PADDLE_W, PADDLE_H, 5); ctx.fill();
-  ctx.shadowBlur  = 0;
-  // Sheen
-  ctx.fillStyle = "rgba(255,255,255,0.60)";
-  ctx.beginPath(); ctx.roundRect(paddleX + 4, py + 2, PADDLE_W - 8, 3, 2); ctx.fill();
-
-  // ── Ball — bright white chrome ─────────────────────────────────────────────
-  if (gs.running || phase === "playing") {
-    const bg = ctx.createRadialGradient(gs.bx - 2, gs.by - 2, 0.5, gs.bx, gs.by, BALL_R);
-    bg.addColorStop(0,    "#ffffff");
-    bg.addColorStop(0.35, "#ddeeff");
-    bg.addColorStop(0.75, "#8aadcc");
-    bg.addColorStop(1,    "#2a4060");
-    ctx.fillStyle   = bg;
-    ctx.shadowColor = "rgba(200,230,255,0.7)";
-    ctx.shadowBlur  = 10;
-    ctx.beginPath(); ctx.arc(gs.bx, gs.by, BALL_R, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur  = 0;
+  if (age >= 1) {
+    deathBurst.particles.forEach(p => _scene.remove(p.mesh));
+    deathBurst = null;
   }
+}
 
-  // ── Floating payout splashes — gold coin style ────────────────────────────
+// ── 3D Coin burst ─────────────────────────────────────────────────────────────
+
+const COIN_DURATION = 680;
+const COIN_GRAVITY  = 180;
+
+function createCoinBurst(x, y) {
+  const THREE = window.THREE;
+  const coins  = [];
+  const count  = 7;
+  const geo    = new THREE.SphereGeometry(4, 10, 10);
+
+  for (let i = 0; i < count; i++) {
+    const spread = ((i / (count - 1)) - 0.5) * (110 * Math.PI / 180);
+    const angle  = -Math.PI / 2 + spread;
+    const speed  = 90 + Math.random() * 70;
+    const mat    = new THREE.MeshStandardMaterial({
+      color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 0.8,
+      roughness: 0.2, metalness: 0.9,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(gx(x), BRICK_3D_H / 2 + 4, gz(y));
+    _scene.add(mesh);
+
+    coins.push({
+      mesh,
+      vx:   Math.cos(angle) * speed * 0.4, // spread in X/Z
+      vy:   Math.abs(Math.sin(angle)) * speed + 40,
+      vz:   Math.cos(angle) * speed * 0.3,
+      born: performance.now(),
+      life: 0.55 + Math.random() * 0.45,
+    });
+  }
+  return { x, y, born: performance.now(), coins };
+}
+
+function _update3DCoins() {
+  if (!coinBursts || !coinBursts.length) return;
+
+  const now   = performance.now();
+  const alive = [];
+
+  coinBursts.forEach(burst => {
+    const elapsed = (now - burst.born) / 1000;
+    const age     = (now - burst.born) / COIN_DURATION;
+
+    if (age >= 1) {
+      burst.coins.forEach(c => _scene.remove(c.mesh));
+      return;
+    }
+
+    burst.coins.forEach(c => {
+      const pAge = age / c.life;
+      if (pAge >= 1) { c.mesh.visible = false; return; }
+      const alpha = Math.max(0, 1 - Math.pow(pAge, 1.6));
+      c.mesh.position.x = gx(burst.x) + c.vx * elapsed;
+      c.mesh.position.y = BRICK_3D_H / 2 + 4 + c.vy * elapsed - 0.5 * COIN_GRAVITY * elapsed * elapsed;
+      c.mesh.position.z = gz(burst.y) + c.vz * elapsed;
+      c.mesh.material.emissiveIntensity = 0.8 * alpha;
+      c.mesh.material.transparent = alpha < 1;
+      c.mesh.material.opacity     = alpha;
+      c.mesh.visible = alpha > 0.01;
+    });
+
+    alive.push(burst);
+  });
+
+  coinBursts.length = 0;
+  alive.forEach(b => coinBursts.push(b));
+}
+
+// ── HUD canvas drawing (text overlays) ────────────────────────────────────────
+
+function _drawHUD(splashes, wager, mult, totalNormal, gs) {
+  if (!_hudCtx) return;
+  const ctx = _hudCtx;
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Floating payout splashes
   const now  = performance.now();
   const live = splashes.filter(sp => now - sp.born < 900);
   splashes.length = 0;
@@ -243,7 +428,7 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   live.forEach(sp => {
     const age = (now - sp.born) / 900;
     ctx.globalAlpha   = 1 - Math.pow(age, 1.4);
-    ctx.font          = `bold ${11 + age * 6}px monospace`;
+    ctx.font          = `bold ${12 + age * 6}px monospace`;
     ctx.textAlign     = "center";
     ctx.textBaseline  = "middle";
     ctx.fillStyle     = "#ffd700";
@@ -254,8 +439,8 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     ctx.globalAlpha = 1;
   });
 
-  // ── Live payout HUD ───────────────────────────────────────────────────────
-  if (gs.cleared > 0) {
+  // Live payout pill
+  if (gs && gs.cleared > 0) {
     const pct = gs.cleared / totalNormal;
     const cur = (parseFloat(wager) || 0) * mult * payoutCurve(pct);
     ctx.fillStyle = "rgba(0,0,0,0.60)";
@@ -273,166 +458,77 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     ctx.shadowBlur   = 0;
   }
 
-  // ── Coin bursts VFX (Sonic-style) ─────────────────────────────────────────
-  if (typeof coinBursts !== "undefined" && coinBursts.length) {
-    const now2   = performance.now();
-    const alive  = coinBursts.filter(cb => now2 - cb.born < COIN_DURATION);
-    coinBursts.length = 0;
-    alive.forEach(cb => { coinBursts.push(cb); drawCoinBurst(ctx, cb); });
-  }
-
-  // ── Death burst VFX ───────────────────────────────────────────────────────
+  // Death burst screen flash on HUD canvas
   if (typeof deathBurst !== "undefined" && deathBurst) {
     drawDeathBurst(ctx);
   }
 }
 
-// =============================================================================
-// COIN BURST VFX — Sonic-style coins pop out of each brick hit
-// =============================================================================
+// ── Coin burst VFX fallback data builder ──────────────────────────────────────
+// (kept so engine/physics.js can still call createCoinBurst — 3D version above is used)
 
-const COIN_DURATION = 680; // ms
-const COIN_GRAVITY  = 180; // px / s²
+// ── Main drawFrame — called every animation frame by the engine ───────────────
 
-function createCoinBurst(x, y) {
-  const coins = [];
-  const count = 7;
-  for (let i = 0; i < count; i++) {
-    // Fan of angles spread mostly upward (-90° ± 55°)
-    const spread = ((i / (count - 1)) - 0.5) * (110 * Math.PI / 180);
-    const angle  = -Math.PI / 2 + spread;
-    const speed  = 90 + Math.random() * 70; // px/s
-    coins.push({
-      vx:   Math.cos(angle) * speed,
-      vy:   Math.sin(angle) * speed,
-      spin: (Math.random() > 0.5 ? 1 : -1) * (4 + Math.random() * 5), // rad/s
-    });
-  }
-  return { x, y, born: performance.now(), coins };
-}
-
-function drawCoinBurst(ctx, burst) {
-  const elapsed = performance.now() - burst.born; // ms
-  const t       = elapsed / 1000;                  // seconds
-  const age     = elapsed / COIN_DURATION;         // 0 → 1
-
-  burst.coins.forEach(c => {
-    const alpha = Math.max(0, 1 - Math.pow(age, 1.6));
-    if (alpha <= 0) return;
-
-    // Arc trajectory with gravity
-    const px = burst.x + c.vx * t;
-    const py = burst.y + c.vy * t + 0.5 * COIN_GRAVITY * t * t;
-
-    // Spinning coin: vary x-radius like a rotating disc
-    const xRadius = Math.max(0.8, Math.abs(Math.cos(c.spin * t)) * 5.5);
-    const yRadius = 5.5;
-
-    // Gold coin radial gradient
-    const cx0 = px - xRadius * 0.35;
-    const cy0 = py - yRadius * 0.35;
-    const coinGrad = ctx.createRadialGradient(cx0, cy0, 0.5, px, py, yRadius);
-    coinGrad.addColorStop(0,    "#fffce0");
-    coinGrad.addColorStop(0.35, "#ffd700");
-    coinGrad.addColorStop(0.75, "#cc8800");
-    coinGrad.addColorStop(1,    "#7a4d00");
-
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle   = coinGrad;
-    ctx.shadowColor = "#ffd700";
-    ctx.shadowBlur  = 9;
-    ctx.beginPath();
-    ctx.ellipse(px, py, xRadius, yRadius, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Small specular dot on the coin face
-    if (xRadius > 2) {
-      ctx.fillStyle   = "rgba(255,255,240,0.70)";
-      ctx.shadowBlur  = 0;
-      ctx.beginPath();
-      ctx.ellipse(px - xRadius * 0.3, py - yRadius * 0.3, xRadius * 0.22, yRadius * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
+function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phase) {
+  if (!window.THREE) {
+    // Three.js not loaded yet — draw a minimal dark background so canvas isn't blank
+    const ctx2d = canvas ? canvas.getContext("2d") : null;
+    if (ctx2d) {
+      ctx2d.fillStyle = "#07091a";
+      ctx2d.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx2d.fillStyle = "#ffd700";
+      ctx2d.font = "bold 14px monospace";
+      ctx2d.textAlign = "center";
+      ctx2d.fillText("Loading 3D engine…", CANVAS_W / 2, CANVAS_H / 2);
     }
-  });
+    return;
+  }
 
-  ctx.shadowBlur  = 0;
-  ctx.globalAlpha = 1;
-}
+  // One-time scene init
+  if (!_renderer) _initScene(canvas);
+  if (!_renderer) return; // init failed — silently skip
 
-// =============================================================================
-// DEATH BURST VFX
-// =============================================================================
+  // Detect new game (new gs object) → rebuild brick meshes
+  if (gs && gs !== _lastGs) {
+    _lastGs = gs;
+    _initBricks(gs.bricks);
+  }
 
-const BURST_COLORS   = ["#ff2200", "#ff5500", "#ff8800", "#ffcc00", "#ffffff", "#aaccff"];
-const BURST_DURATION = 1200; // ms
+  // ── Sync brick visibility ─────────────────────────────────────────────────
+  if (gs) {
+    gs.bricks.forEach(b => {
+      const mesh = _brickMeshes.get(b.id);
+      if (!mesh) return;
+      mesh.visible = b.alive;
 
-function createDeathBurst(x, y) {
-  const particles = [];
-  for (let i = 0; i < 48; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.5 + Math.random() * 5;
-    particles.push({
-      vx:    Math.cos(angle) * speed,
-      vy:    Math.sin(angle) * speed,
-      size:  2 + Math.random() * 5.5,
-      color: BURST_COLORS[Math.floor(Math.random() * BURST_COLORS.length)],
-      life:  0.55 + Math.random() * 0.45,
+      // Keep reflection visibility in sync with the brick
+      const refMesh = _brickReflections.get(b.id);
+      if (refMesh) refMesh.visible = b.alive;
+
+      // While alive, death bricks look identical (handled by same material)
     });
   }
-  return { x, y, born: performance.now(), particles };
-}
 
-function drawDeathBurst(ctx) {
-  const now = performance.now();
-  const age = (now - deathBurst.born) / BURST_DURATION;
-  if (age >= 1) return;
-
-  const { x, y, particles } = deathBurst;
-
-  // Screen flash
-  const flashAlpha = Math.max(0, 0.48 * (1 - age / 0.22));
-  if (flashAlpha > 0) {
-    ctx.globalAlpha = flashAlpha;
-    ctx.fillStyle   = "#aa0000";
-    ctx.fillRect(0, 0, CANVAS_W, PLAY_H);
-    ctx.globalAlpha = 1;
+  // ── Ball position ─────────────────────────────────────────────────────────
+  const ballVisible = gs && (gs.running || phase === "playing");
+  _ballMesh.visible = ballVisible;
+  if (ballVisible) {
+    _ballMesh.position.set(gx(gs.bx), BALL_R + 3, gz(gs.by));
+    _ballLight.position.copy(_ballMesh.position);
   }
 
-  // Shockwave ring
-  const ringRadius = age * 140;
-  const ringAlpha  = Math.max(0, 1 - age / 0.5);
-  if (ringAlpha > 0) {
-    ctx.globalAlpha = ringAlpha;
-    ctx.strokeStyle = "#ff6600";
-    ctx.lineWidth   = 3.5 * (1 - age);
-    ctx.shadowColor = "#ff4400";
-    ctx.shadowBlur  = 20;
-    ctx.beginPath();
-    ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.shadowBlur  = 0;
-    ctx.globalAlpha = 1;
-  }
+  // ── Paddle position ───────────────────────────────────────────────────────
+  const padCenterX = paddleX + PADDLE_W / 2;
+  const padZ       = PLAY_H - 44;
+  _paddleMesh.position.set(gx(padCenterX), 7, gz(padZ));
 
-  // Particles
-  const elapsed = (now - deathBurst.born) / 1000;
-  particles.forEach(p => {
-    const pAge   = age / p.life;
-    if (pAge >= 1) return;
-    const alpha  = Math.max(0, 1 - Math.pow(pAge, 1.5));
-    const px     = x + p.vx * elapsed * 95;
-    const py     = y + p.vy * elapsed * 95;
-    const radius = p.size * (1 - pAge * 0.6);
+  // ── Update 3D VFX ─────────────────────────────────────────────────────────
+  _update3DBursts();
+  _update3DCoins();
 
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle   = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur  = 8;
-    ctx.beginPath();
-    ctx.arc(px, py, Math.max(0.5, radius), 0, Math.PI * 2);
-    ctx.fill();
-  });
+  // ── Render 3D scene ───────────────────────────────────────────────────────
+  _renderer.render(_scene, _camera);
 
-  ctx.shadowBlur  = 0;
-  ctx.globalAlpha = 1;
+  // ── HUD canvas (text overlay) ─────────────────────────────────────────────
+  _drawHUD(splashes, wager, mult, totalNormal, gs);
 }
