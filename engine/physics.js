@@ -29,6 +29,7 @@ function startGame() {
   };
   paddleX       = CANVAS_W / 2 - PADDLE_W / 2;
   splashes      = [];
+  coinBursts    = [];
   sessionStart  = Date.now();
   bricksCleared = 0;
   result        = null;
@@ -122,6 +123,9 @@ function gameLoop() {
       }
 
       s.cleared++;
+
+      // Coin burst VFX — Sonic-style coins pop out of the brick
+      coinBursts.push(createCoinBurst(b.x + BRICK_W / 2, b.y + BRICK_H / 2));
 
       // Reflect off nearest edge
       const oL = s.bx - b.x, oR = bR - s.bx, oT = s.by - b.y, oB = bB - s.by;

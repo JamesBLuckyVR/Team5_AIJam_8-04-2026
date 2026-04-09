@@ -21,6 +21,7 @@ let paddleX      = 0;
 let splashes     = [];
 let sessionStart = null;
 let deathBurst   = null;   // set by physics on death hit, read by art/draw.js
+let coinBursts   = [];     // array of coin burst objects, one per normal brick hit
 
 // ── DOM element references ────────────────────────────────────────────────────
 // Assigned once on DOMContentLoaded inside engine/physics.js
