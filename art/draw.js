@@ -150,28 +150,28 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, CANVAS_W, PLAY_H);
 
-  // ── Cashout zone — rich gold gradient ─────────────────────────────────────
+  // ── Cashout zone — money green gradient ───────────────────────────────────
   const czGrad = ctx.createLinearGradient(0, PLAY_H, 0, CANVAS_H);
-  czGrad.addColorStop(0, "#4a3200");
-  czGrad.addColorStop(1, "#7a5500");
+  czGrad.addColorStop(0, "#0d3d1a");
+  czGrad.addColorStop(1, "#165c28");
   ctx.fillStyle = czGrad;
   ctx.fillRect(0, PLAY_H, CANVAS_W, CASHOUT_H);
 
   ctx.font          = "bold 22px sans-serif";
   ctx.textAlign     = "center";
   ctx.textBaseline  = "middle";
-  ctx.fillStyle     = "rgba(255,220,80,0.20)";
+  ctx.fillStyle     = "rgba(100,255,140,0.15)";
   ctx.fillText("CASHOUT ZONE", CANVAS_W / 2 + 1, PLAY_H + CASHOUT_H / 2 + 1);
-  ctx.fillStyle     = "#ffd700";
-  ctx.shadowColor   = "#ffd700";
+  ctx.fillStyle     = "#2ecc71";
+  ctx.shadowColor   = "#2ecc71";
   ctx.shadowBlur    = 8;
   ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, PLAY_H + CASHOUT_H / 2);
   ctx.shadowBlur    = 0;
 
-  // Divider gold glow line
-  ctx.strokeStyle = "#ffd700";
+  // Divider green glow line
+  ctx.strokeStyle = "#2ecc71";
   ctx.lineWidth   = 2;
-  ctx.shadowColor = "#ffaa00";
+  ctx.shadowColor = "#27ae60";
   ctx.shadowBlur  = 10;
   ctx.beginPath(); ctx.moveTo(0, PLAY_H); ctx.lineTo(CANVAS_W, PLAY_H); ctx.stroke();
   ctx.shadowBlur  = 0;
@@ -206,19 +206,19 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     }
   });
 
-  // ── Paddle — gold metallic ─────────────────────────────────────────────────
+  // ── Paddle — clean white with subtle glow ─────────────────────────────────
   const py      = PLAY_H - 44;
   const pGrad   = ctx.createLinearGradient(paddleX, py, paddleX + PADDLE_W, py + PADDLE_H);
-  pGrad.addColorStop(0,   "#ffdd00");
-  pGrad.addColorStop(0.4, "#ffaa00");
-  pGrad.addColorStop(1,   "#cc7700");
+  pGrad.addColorStop(0,   "#ffffff");
+  pGrad.addColorStop(0.5, "#d8eeff");
+  pGrad.addColorStop(1,   "#a0c4e8");
   ctx.fillStyle   = pGrad;
-  ctx.shadowColor = "#ffcc00";
-  ctx.shadowBlur  = 10;
+  ctx.shadowColor = "rgba(200,230,255,0.8)";
+  ctx.shadowBlur  = 12;
   ctx.beginPath(); ctx.roundRect(paddleX, py, PADDLE_W, PADDLE_H, 5); ctx.fill();
   ctx.shadowBlur  = 0;
   // Sheen
-  ctx.fillStyle = "rgba(255,255,200,0.45)";
+  ctx.fillStyle = "rgba(255,255,255,0.60)";
   ctx.beginPath(); ctx.roundRect(paddleX + 4, py + 2, PADDLE_W - 8, 3, 2); ctx.fill();
 
   // ── Ball — bright white chrome ─────────────────────────────────────────────
