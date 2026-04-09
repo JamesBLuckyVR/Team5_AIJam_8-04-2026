@@ -94,9 +94,17 @@
 
 </div>
 
-<script src="brickanoid_constants.js"></script>
-<script src="brickanoid_utils.js"></script>
-<script src="brickanoid_draw.js"></script>
-<script src="brickanoid_app.js"></script>
+<!-- ── Load order matters: settings → engine → art ── -->
+<!-- Game Settings team -->
+<script src="settings/config.js"></script>
+<!-- Game Engine team -->
+<script src="engine/state.js"></script>
+<script src="engine/payout.js"></script>
+<script src="engine/brickGen.js"></script>
+<!-- Game Art team -->
+<script src="art/draw.js"></script>
+<script src="art/ui.js"></script>
+<!-- Game Engine team (physics last — needs art/ui.js for updateUI) -->
+<script src="engine/physics.js"></script>
 </body>
 </html>

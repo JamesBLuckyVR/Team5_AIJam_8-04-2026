@@ -1,5 +1,10 @@
-// Renders a single frame of the game onto the canvas.
-// Called every animation frame while playing, and once on phase changes.
+// =============================================================================
+// CANVAS RENDERER — owned by the Game Art team
+// =============================================================================
+// Everything you see on the canvas is drawn here. Change colors, shapes,
+// effects, and animations without touching any game logic.
+// =============================================================================
+
 function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phase) {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
@@ -16,10 +21,10 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   ctx.fillStyle = czGrad;
   ctx.fillRect(0, PLAY_H, CANVAS_W, CASHOUT_H);
 
-  ctx.font = "bold 22px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  ctx.font          = "bold 22px sans-serif";
+  ctx.textAlign     = "center";
+  ctx.textBaseline  = "middle";
+  ctx.fillStyle     = "rgba(255,255,255,0.22)";
   ctx.fillText("CASHOUT ZONE", CANVAS_W / 2 + 1, PLAY_H + CASHOUT_H / 2 + 1);
   ctx.fillStyle = "#fff";
   ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, PLAY_H + CASHOUT_H / 2);
@@ -30,7 +35,7 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   ctx.shadowColor = "#2ecc71";
   ctx.shadowBlur  = 8;
   ctx.beginPath(); ctx.moveTo(0, PLAY_H); ctx.lineTo(CANVAS_W, PLAY_H); ctx.stroke();
-  ctx.shadowBlur = 0;
+  ctx.shadowBlur  = 0;
 
   // Background grid dots
   ctx.fillStyle = "rgba(255,255,255,0.04)";
@@ -45,7 +50,6 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   gs.bricks.forEach(b => {
     if (!b.alive) return;
 
-    // Brick body
     ctx.fillStyle = b.color;
     ctx.beginPath(); ctx.roundRect(b.x, b.y, BRICK_W, BRICK_H, 3); ctx.fill();
 
@@ -53,13 +57,13 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.beginPath(); ctx.roundRect(b.x + 2, b.y + 2, BRICK_W - 4, 5, 2); ctx.fill();
 
-    // Death brick revealed after hit
+    // Death brick skull (revealed after hit)
     if (b.isDeath && b.revealed) {
       ctx.fillStyle = "rgba(0,0,0,0.75)";
       ctx.beginPath(); ctx.roundRect(b.x, b.y, BRICK_W, BRICK_H, 3); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 13px sans-serif";
-      ctx.textAlign = "center";
+      ctx.fillStyle    = "#fff";
+      ctx.font         = "bold 13px sans-serif";
+      ctx.textAlign    = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("☠", b.x + BRICK_W / 2, b.y + BRICK_H / 2);
     }
@@ -85,26 +89,26 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     ctx.beginPath(); ctx.arc(gs.bx, gs.by, BALL_R, 0, Math.PI * 2); ctx.fill();
   }
 
-  // ── Payout splashes ───────────────────────────────────────────────────────
+  // ── Floating payout splashes ──────────────────────────────────────────────
   const now  = performance.now();
   const live = splashes.filter(sp => now - sp.born < 900);
   splashes.length = 0;
   live.forEach(sp => splashes.push(sp));
   live.forEach(sp => {
     const age = (now - sp.born) / 900;
-    ctx.globalAlpha    = 1 - Math.pow(age, 1.4);
-    ctx.font           = `bold ${11 + age * 5}px monospace`;
-    ctx.textAlign      = "center";
-    ctx.textBaseline   = "middle";
-    ctx.fillStyle      = "#00ffb3";
-    ctx.shadowColor    = "#00ffb3";
-    ctx.shadowBlur     = 10;
+    ctx.globalAlpha   = 1 - Math.pow(age, 1.4);
+    ctx.font          = `bold ${11 + age * 5}px monospace`;
+    ctx.textAlign     = "center";
+    ctx.textBaseline  = "middle";
+    ctx.fillStyle     = "#00ffb3";
+    ctx.shadowColor   = "#00ffb3";
+    ctx.shadowBlur    = 10;
     ctx.fillText(`+$${sp.val}`, sp.x, sp.y - age * 40);
     ctx.shadowBlur  = 0;
     ctx.globalAlpha = 1;
   });
 
-  // ── Live payout HUD (canvas overlay) ─────────────────────────────────────
+  // ── Live payout HUD ───────────────────────────────────────────────────────
   if (gs.cleared > 0) {
     const pct = gs.cleared / totalNormal;
     const cur = (parseFloat(wager) || 0) * mult * payoutCurve(pct);
