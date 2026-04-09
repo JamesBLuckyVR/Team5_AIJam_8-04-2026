@@ -1,3 +1,10 @@
+// =============================================================================
+// GAME SETTINGS — owned by the Game Settings team
+// =============================================================================
+// Change numbers here to tune difficulty, layout, payouts, and visual palette.
+// No game logic lives in this file — safe to edit without breaking anything.
+// =============================================================================
+
 // ── Grid / canvas dimensions ──────────────────────────────────────────────────
 const COLS      = 10;
 const ROWS      = 6;
@@ -26,6 +33,9 @@ const DEATH_BONUS = { 5: 1.00, 10: 1.08, 22: 1.18, 30: 1.28, 38: 1.40 };
 // Pixels-per-frame for each speed level (index 0 unused)
 const SPEED_PX    = [0, 3.2, 4.2, 5.4, 6.8, 8.4];
 
-// ── Visual ────────────────────────────────────────────────────────────────────
-const BRICK_COLORS  = ["#c0392b", "#e67e22", "#f1c40f", "#27ae60", "#2980b9"];
+// ── Available options shown in the sidebar selectors ─────────────────────────
 const DEATH_OPTIONS = [5, 10, 22, 30, 38];
+
+// ── Visual palette ────────────────────────────────────────────────────────────
+// One color per brick row. Art team: feel free to change these.
+const BRICK_COLORS = ["#c0392b", "#e67e22", "#f1c40f", "#27ae60", "#2980b9"];
