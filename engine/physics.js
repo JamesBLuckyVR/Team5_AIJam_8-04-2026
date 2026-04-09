@@ -211,6 +211,8 @@ function removeInputListeners() {
 
 document.addEventListener("DOMContentLoaded", () => {
   canvas         = document.getElementById("game-canvas");
+  canvas.width   = CANVAS_W;
+  canvas.height  = CANVAS_H;
   wagerInput     = document.getElementById("wager-input");
   halfBtn        = document.getElementById("half-btn");
   doubleBtn      = document.getElementById("double-btn");

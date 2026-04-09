@@ -5,20 +5,26 @@
 // No game logic lives in this file — safe to edit without breaking anything.
 // =============================================================================
 
-// ── Grid / canvas dimensions ──────────────────────────────────────────────────
-const COLS      = 10;
-const ROWS      = 6;
-const CANVAS_W  = 620;
-const CANVAS_H  = 740;
-const CASHOUT_H = 54;
-const PLAY_H    = CANVAS_H - CASHOUT_H;
+// ── Brick grid — change COLS and ROWS to resize the playing field ─────────────
+const COLS = 10;   // ← number of brick columns
+const ROWS = 6;    // ← number of brick rows
 
 // ── Brick dimensions ──────────────────────────────────────────────────────────
 const BRICK_W   = 56;
 const BRICK_H   = 24;
 const BRICK_GAP = 3;
-const GRID_LEFT = (CANVAS_W - (COLS * (BRICK_W + BRICK_GAP) - BRICK_GAP)) / 2;
-const GRID_TOP  = 40;
+
+// ── Layout padding — derived canvas size adjusts automatically ────────────────
+const GRID_TOP            = 40;   // space above the brick grid (px)
+const GRID_PADDING_X      = 16.5; // horizontal margin on each side of the grid (px)
+const GRID_PADDING_BOTTOM = 487;  // space below bricks to bottom of play area — ball & paddle room (px)
+const CASHOUT_H           = 54;   // height of the cashout zone bar (px)
+
+// ── Derived dimensions — do not edit these directly ───────────────────────────
+const CANVAS_W  = COLS * (BRICK_W + BRICK_GAP) - BRICK_GAP + GRID_PADDING_X * 2;
+const PLAY_H    = GRID_TOP + ROWS * (BRICK_H + BRICK_GAP) - BRICK_GAP + GRID_PADDING_BOTTOM;
+const CANVAS_H  = PLAY_H + CASHOUT_H;
+const GRID_LEFT = GRID_PADDING_X;
 
 // ── Paddle / ball ─────────────────────────────────────────────────────────────
 const PADDLE_W = 70;
