@@ -56,8 +56,26 @@ function updateUI() {
   if (phase === "result" && result) renderResultCard(result);
 
   splashEl.classList.toggle("hidden",       phase !== "bet");
-  deathOverlay.classList.toggle("hidden",   !(phase === "result" && result?.type === "death"));
   cashoutOverlay.classList.toggle("hidden", !(phase === "result" && result?.type === "drop"));
+
+  // Re-trigger CSS animations by removing/re-adding the element on each death show
+  const showDeath = phase === "result" && result?.type === "death";
+  if (showDeath && deathOverlay.classList.contains("hidden")) {
+    deathOverlay.classList.remove("hidden");
+    // Force reflow so the animation restarts from the beginning
+    void deathOverlay.offsetWidth;
+    deathOverlay.style.animation = "none";
+    void deathOverlay.offsetWidth;
+    deathOverlay.style.animation = "";
+    const skull = deathOverlay.querySelector(".death-skull");
+    if (skull) {
+      skull.style.animation = "none";
+      void skull.offsetWidth;
+      skull.style.animation = "";
+    }
+  } else if (!showDeath) {
+    deathOverlay.classList.add("hidden");
+  }
   if (phase === "result" && result?.type === "drop") renderCashoutCard(result);
 
   buildSelectors();

@@ -114,6 +114,8 @@ function gameLoop() {
       if (b.isDeath) {
         b.revealed = true;
         s.running  = false;
+        deathBurst = createDeathBurst(b.x + BRICK_W / 2, b.y + BRICK_H / 2);
+        tickDeathBurst();
         draw();
         endRound("death", s);
         return;
@@ -147,6 +149,21 @@ function gameLoop() {
 
   draw();
   animFrame = requestAnimationFrame(gameLoop);
+}
+
+// ── Death burst animation loop ────────────────────────────────────────────────
+// Runs independently of the main game loop so the explosion plays out even
+// after the ball has stopped and endRound() has been called.
+function tickDeathBurst() {
+  if (!deathBurst) return;
+  const age = (performance.now() - deathBurst.born) / 1200;
+  if (age >= 1) {
+    deathBurst = null;
+    draw(); // one final clean frame without the burst
+    return;
+  }
+  draw();
+  requestAnimationFrame(tickDeathBurst);
 }
 
 // ── Input handlers ────────────────────────────────────────────────────────────

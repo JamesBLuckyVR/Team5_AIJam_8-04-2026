@@ -20,6 +20,7 @@ let animFrame    = null;
 let paddleX      = 0;
 let splashes     = [];
 let sessionStart = null;
+let deathBurst   = null;   // set by physics on death hit, read by art/draw.js
 
 // ── DOM element references ────────────────────────────────────────────────────
 // Assigned once on DOMContentLoaded inside engine/physics.js
