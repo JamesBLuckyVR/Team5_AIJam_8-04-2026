@@ -45,10 +45,12 @@ function updateUI() {
   betBtn.classList.toggle("hidden", phase === "playing");
   if (phase !== "playing") betBtn.textContent = phase === "result" ? "BET AGAIN" : "BET";
 
+  cashoutBtn.classList.toggle("hidden", phase !== "playing");
+
   liveBox.classList.toggle("hidden", phase !== "playing");
   if (phase === "playing") {
     const pct = bricksCleared / tn;
-    liveVal.textContent      = `$${(w * m * payoutCurve(pct)).toFixed(2)}`;
+    liveVal.textContent      = `$${(w + w * m * payoutCurve(pct)).toFixed(2)}`;
     bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
   }
 
@@ -73,6 +75,9 @@ function updateUI() {
       void skull.offsetWidth;
       skull.style.animation = "";
     }
+    const rebetBtn = document.getElementById("death-rebet-btn");
+    rebetBtn.textContent = `↺ REBET $${(parseFloat(wager) || 0).toFixed(2)}`;
+    rebetBtn.onclick = startGame;
   } else if (!showDeath) {
     deathOverlay.classList.add("hidden");
   }
@@ -86,9 +91,9 @@ function updateUI() {
 
 function renderResultCard(r) {
   let bg, border, titleColor, title;
-  if      (r.type === "death") { bg = "#3a0a0a"; border = "#c0392b"; titleColor = "#ff4d4d"; title = "☠ DEATHBLOCK!"; }
-  else if (r.type === "clear") { bg = "#0a2a1a"; border = "#00ffb3"; titleColor = "#00ffb3"; title = "✓ CLEARED!"; }
-  else                         { bg = "#0d1a30"; border = "#2980b9"; titleColor = "#7ec8ff"; title = "● DROPPED"; }
+  if      (r.type === "death")   { bg = "#3a0a0a"; border = "#c0392b"; titleColor = "#ff4d4d"; title = "☠ DEATHBLOCK!"; }
+  else if (r.type === "clear")   { bg = "#0a2a1a"; border = "#00ffb3"; titleColor = "#00ffb3"; title = "✓ CLEARED!"; }
+  else                           { bg = "#0a2a15"; border = "#00cc66"; titleColor = "#00ff88"; title = "💰 CASHED OUT!"; }
 
   const payColor = r.payout > 0 ? "#f1c40f" : "#ff4d4d";
   const payText  = r.payout > 0 ? `+$${r.payout.toFixed(2)}` : `-$${r.wager.toFixed(2)}`;
@@ -108,7 +113,7 @@ function renderCashoutCard(r) {
   const net      = r.payout - r.wager;
   const netColor = net >= 0 ? "#00ffb3" : "#ff4d4d";
   const netSign  = net >= 0 ? "+" : "";
-  const payColor = r.payout >= r.wager ? "#00ffb3" : "#f1c40f";
+  const payColor = r.payout >= r.wager ? "#00ffb3" : "#66ffaa";
 
   cashoutCard.innerHTML = `
     <div class="co-title">Cashout Summary</div>

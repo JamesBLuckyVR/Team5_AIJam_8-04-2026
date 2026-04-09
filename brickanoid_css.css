@@ -159,14 +159,14 @@ body { background: #05060f; }
   filter: drop-shadow(0 0 12px rgba(255,180,0,0.5));
 }
 .splash-sub   { font-size: 13px; color: #6a7090; margin-top: 8px; }
-.splash-death { font-size: 11px; color: #3a2800; margin-top: 16px; }
-.splash-cash  { font-size: 11px; color: #4a3800; margin-top: 8px; }
+.splash-death { font-size: 11px; color: #ff4444; margin-top: 16px; }
+.splash-cash  { font-size: 11px; color: #00dd66; margin-top: 8px; }
 
 /* Death overlay — covers play area only, not cashout zone */
 #death-overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 54px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(35,0,0,0.75); border-radius: 10px 10px 0 0; pointer-events: none;
+  background: rgba(35,0,0,0.75); border-radius: 10px 10px 0 0;
   animation: deathOverlayFlicker 0.4s ease-out forwards;
 }
 .death-skull {
@@ -176,6 +176,15 @@ body { background: #05060f; }
 }
 .death-title { font-size: 24px; font-weight: 800; color: #ff4444; letter-spacing: 2px; }
 .death-sub   { font-size: 13px; color: #cc6666; margin-top: 6px; }
+#death-rebet-btn {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #cc2222, #881111);
+  border: none; border-radius: 8px; padding: 11px 28px;
+  color: #fff; font-weight: 800; font-size: 14px;
+  cursor: pointer; letter-spacing: 1px; font-family: monospace;
+  box-shadow: 0 4px 16px rgba(200,0,0,0.40);
+}
+#death-rebet-btn:hover { opacity: 0.88; }
 
 @keyframes deathOverlayFlicker {
   0%   { box-shadow: inset 0 0 70px 20px rgba(255,0,0,0.85); background: rgba(110,0,0,0.88); }
@@ -195,32 +204,44 @@ body { background: #05060f; }
 /* Cashout summary overlay */
 #cashout-overlay { background: rgba(5,6,15,0.90); border-radius: 10px; }
 .cashout-card {
-  background: #08090e; border: 1px solid rgba(255,215,0,0.35); border-radius: 14px;
+  background: #060e0a; border: 1px solid rgba(0,220,100,0.35); border-radius: 14px;
   padding: 28px 36px; min-width: 280px; text-align: center;
-  box-shadow: 0 0 50px rgba(255,180,0,0.15), 0 0 2px rgba(255,215,0,0.4);
+  box-shadow: 0 0 50px rgba(0,200,80,0.12), 0 0 2px rgba(0,220,100,0.4);
 }
 .co-title {
-  font-size: 13px; color: #ffd700; font-weight: 700; letter-spacing: 3px;
+  font-size: 13px; color: #00ff88; font-weight: 700; letter-spacing: 3px;
   margin-bottom: 18px; text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(255,200,0,0.4);
+  text-shadow: 0 0 10px rgba(0,220,100,0.5);
 }
 .co-rows  { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
-.co-row   { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,210,0,0.1); padding-bottom: 10px; }
+.co-row   { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,220,100,0.1); padding-bottom: 10px; }
 .co-lbl   { font-size: 12px; color: #6a7090; }
 .co-val   { font-size: 16px; font-weight: 700; }
 .co-net   { display: flex; justify-content: space-between; align-items: center; }
 .co-net-lbl { font-size: 12px; color: #6a7090; }
 .co-net-val { font-size: 18px; font-weight: 800; }
-.co-pct   { font-size: 11px; color: #2a2800; margin-bottom: 16px; }
+.co-pct   { font-size: 11px; color: #1a3a28; margin-bottom: 16px; }
 #rebet-btn {
   width: 100%;
-  background: linear-gradient(135deg, #ffcc00, #ff8800);
+  background: linear-gradient(135deg, #00cc66, #008844);
   border: none; border-radius: 8px; padding: 11px 0;
-  color: #07050a; font-weight: 800; font-size: 14px;
+  color: #fff; font-weight: 800; font-size: 14px;
   cursor: pointer; letter-spacing: 1px; font-family: monospace;
-  box-shadow: 0 4px 16px rgba(255,160,0,0.35);
+  box-shadow: 0 4px 16px rgba(0,180,80,0.35);
 }
 #rebet-btn:hover { opacity: 0.88; }
+
+/* Cashout button — visible during gameplay */
+#cashout-btn {
+  width: 100%; margin-top: 6px;
+  background: linear-gradient(135deg, #00cc66, #00884a);
+  border: none; border-radius: 8px; padding: 12px 0;
+  color: #fff; font-weight: 800; font-size: 15px;
+  cursor: pointer; letter-spacing: 1px; font-family: monospace;
+  box-shadow: 0 4px 16px rgba(0,200,80,0.35);
+}
+#cashout-btn:hover { opacity: 0.88; }
+
 
 /* ── Utility ── */
 .hidden { display: none !important; }

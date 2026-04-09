@@ -49,9 +49,9 @@ function endRound(type, s) {
   const w    = parseFloat(wager) || 0;
   const m    = getMultiplier();
   let payout = 0;
-  if      (type === "death") payout = 0;
-  else if (type === "drop")  payout = w * m * payoutCurve(pct);
-  else                       payout = w * m; // "clear" — all bricks cleared
+  if      (type === "death")                    payout = 0;
+  else if (type === "drop") payout = w + w * m * payoutCurve(pct);
+  else                                           payout = w * m; // "clear" — all bricks cleared
 
   payout  = Math.round(payout * 100) / 100;
   balance = Math.round((balance - w + payout) * 100) / 100;
@@ -65,6 +65,13 @@ function endRound(type, s) {
   bricksCleared = s.cleared;
   phase         = "result";
   updateUI();
+}
+
+function manualCashout() {
+  if (phase !== "playing" || !gs || !gs.running) return;
+  gs.running = false;
+  sfxCashout();
+  endRound("drop", gs);
 }
 
 // ── Main animation loop ───────────────────────────────────────────────────────
@@ -145,7 +152,7 @@ function gameLoop() {
 
       // Update live payout display
       bricksCleared            = s.cleared;
-      liveVal.textContent      = `$${next.toFixed(2)}`;
+      liveVal.textContent      = `$${(w + next).toFixed(2)}`;
       bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
 
       if (s.cleared === tn) {
@@ -217,10 +224,12 @@ document.addEventListener("DOMContentLoaded", () => {
   liveVal        = document.getElementById("live-val");
   bricksProgEl   = document.getElementById("bricks-prog");
   resultCard     = document.getElementById("result-card");
-  splashEl       = document.getElementById("splash");
-  deathOverlay   = document.getElementById("death-overlay");
-  cashoutOverlay = document.getElementById("cashout-overlay");
-  cashoutCard    = document.getElementById("cashout-card");
+  splashEl          = document.getElementById("splash");
+  deathOverlay      = document.getElementById("death-overlay");
+  cashoutOverlay    = document.getElementById("cashout-overlay");
+  cashoutCard       = document.getElementById("cashout-card");
+  cashoutBtn = document.getElementById("cashout-btn");
+  cashoutBtn.addEventListener("click", manualCashout);
 
   paddleX = CANVAS_W / 2 - PADDLE_W / 2;
 

@@ -29,3 +29,4 @@ let canvas, wagerInput, halfBtn, doubleBtn, betBtn;
 let balanceEl, multEl, maxPayEl, speedSel, deathSel;
 let liveBox, liveVal, bricksProgEl, resultCard;
 let splashEl, deathOverlay, cashoutOverlay, cashoutCard;
+let cashoutBtn;

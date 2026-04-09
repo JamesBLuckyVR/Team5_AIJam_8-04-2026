@@ -150,28 +150,50 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, CANVAS_W, PLAY_H);
 
-  // ── Cashout zone — money green gradient ───────────────────────────────────
+  // ── Cashout zone — green gradient ─────────────────────────────────────────
   const czGrad = ctx.createLinearGradient(0, PLAY_H, 0, CANVAS_H);
-  czGrad.addColorStop(0, "#0d3d1a");
-  czGrad.addColorStop(1, "#165c28");
+  czGrad.addColorStop(0, "#003a18");
+  czGrad.addColorStop(1, "#005c26");
   ctx.fillStyle = czGrad;
   ctx.fillRect(0, PLAY_H, CANVAS_W, CASHOUT_H);
 
-  ctx.font          = "bold 22px sans-serif";
+  // Calculate live payout for display in the cashout zone
+  const _czPct      = gs ? gs.cleared / totalNormal : 0;
+  const _czW        = parseFloat(wager) || 0;
+  const _czPayout   = _czW + _czW * mult * payoutCurve(_czPct);
+  const _showPayout = phase === "playing" || (gs && gs.cleared > 0);
+
+  // "CASHOUT ZONE" label — shift up when payout line is shown
+  const _czLabelY = _showPayout ? PLAY_H + 16 : PLAY_H + CASHOUT_H / 2;
+  ctx.font          = "bold 18px sans-serif";
   ctx.textAlign     = "center";
   ctx.textBaseline  = "middle";
-  ctx.fillStyle     = "rgba(100,255,140,0.15)";
-  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2 + 1, PLAY_H + CASHOUT_H / 2 + 1);
-  ctx.fillStyle     = "#2ecc71";
-  ctx.shadowColor   = "#2ecc71";
+  ctx.fillStyle     = "rgba(255,255,255,0.15)";
+  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2 + 1, _czLabelY + 1);
+  ctx.fillStyle     = "#ffffff";
+  ctx.shadowColor   = "rgba(255,255,255,0.5)";
   ctx.shadowBlur    = 8;
-  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, PLAY_H + CASHOUT_H / 2);
+  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, _czLabelY);
   ctx.shadowBlur    = 0;
 
+  // Live cashout amount — shown during gameplay
+  if (_showPayout) {
+    ctx.font          = "bold 14px monospace";
+    ctx.textAlign     = "center";
+    ctx.textBaseline  = "middle";
+    ctx.fillStyle     = "rgba(0,255,120,0.18)";
+    ctx.fillText(`$${_czPayout.toFixed(2)}`, CANVAS_W / 2 + 1, PLAY_H + 38 + 1);
+    ctx.fillStyle     = "#00ff88";
+    ctx.shadowColor   = "#00cc66";
+    ctx.shadowBlur    = 7;
+    ctx.fillText(`$${_czPayout.toFixed(2)}`, CANVAS_W / 2, PLAY_H + 38);
+    ctx.shadowBlur    = 0;
+  }
+
   // Divider green glow line
-  ctx.strokeStyle = "#2ecc71";
+  ctx.strokeStyle = "#00cc66";
   ctx.lineWidth   = 2;
-  ctx.shadowColor = "#27ae60";
+  ctx.shadowColor = "#00aa44";
   ctx.shadowBlur  = 10;
   ctx.beginPath(); ctx.moveTo(0, PLAY_H); ctx.lineTo(CANVAS_W, PLAY_H); ctx.stroke();
   ctx.shadowBlur  = 0;
@@ -206,19 +228,19 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     }
   });
 
-  // ── Paddle — clean white with subtle glow ─────────────────────────────────
+  // ── Paddle — white chrome ──────────────────────────────────────────────────
   const py      = PLAY_H - 44;
   const pGrad   = ctx.createLinearGradient(paddleX, py, paddleX + PADDLE_W, py + PADDLE_H);
   pGrad.addColorStop(0,   "#ffffff");
-  pGrad.addColorStop(0.5, "#d8eeff");
-  pGrad.addColorStop(1,   "#a0c4e8");
+  pGrad.addColorStop(0.4, "#d0d8e8");
+  pGrad.addColorStop(1,   "#8899aa");
   ctx.fillStyle   = pGrad;
-  ctx.shadowColor = "rgba(200,230,255,0.8)";
-  ctx.shadowBlur  = 12;
+  ctx.shadowColor = "rgba(200,220,255,0.8)";
+  ctx.shadowBlur  = 10;
   ctx.beginPath(); ctx.roundRect(paddleX, py, PADDLE_W, PADDLE_H, 5); ctx.fill();
   ctx.shadowBlur  = 0;
   // Sheen
-  ctx.fillStyle = "rgba(255,255,255,0.60)";
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.beginPath(); ctx.roundRect(paddleX + 4, py + 2, PADDLE_W - 8, 3, 2); ctx.fill();
 
   // ── Ball — bright white chrome ─────────────────────────────────────────────
@@ -246,8 +268,8 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
     ctx.font          = `bold ${11 + age * 6}px monospace`;
     ctx.textAlign     = "center";
     ctx.textBaseline  = "middle";
-    ctx.fillStyle     = "#ffd700";
-    ctx.shadowColor   = "#ffaa00";
+    ctx.fillStyle     = "#00ff88";
+    ctx.shadowColor   = "#00cc66";
     ctx.shadowBlur    = 12;
     ctx.fillText(`+$${sp.val}`, sp.x, sp.y - age * 42);
     ctx.shadowBlur  = 0;
@@ -257,7 +279,8 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   // ── Live payout HUD ───────────────────────────────────────────────────────
   if (gs.cleared > 0) {
     const pct = gs.cleared / totalNormal;
-    const cur = (parseFloat(wager) || 0) * mult * payoutCurve(pct);
+    const _w  = parseFloat(wager) || 0;
+    const cur = _w + _w * mult * payoutCurve(pct);
     ctx.fillStyle = "rgba(0,0,0,0.60)";
     ctx.beginPath(); ctx.roundRect(CANVAS_W / 2 - 95, 8, 190, 26, 6); ctx.fill();
     ctx.strokeStyle = "rgba(255,210,0,0.35)";
@@ -328,18 +351,18 @@ function drawCoinBurst(ctx, burst) {
     const xRadius = Math.max(0.8, Math.abs(Math.cos(c.spin * t)) * 5.5);
     const yRadius = 5.5;
 
-    // Gold coin radial gradient
+    // Green coin radial gradient
     const cx0 = px - xRadius * 0.35;
     const cy0 = py - yRadius * 0.35;
     const coinGrad = ctx.createRadialGradient(cx0, cy0, 0.5, px, py, yRadius);
-    coinGrad.addColorStop(0,    "#fffce0");
-    coinGrad.addColorStop(0.35, "#ffd700");
-    coinGrad.addColorStop(0.75, "#cc8800");
-    coinGrad.addColorStop(1,    "#7a4d00");
+    coinGrad.addColorStop(0,    "#e0fff2");
+    coinGrad.addColorStop(0.35, "#00ff88");
+    coinGrad.addColorStop(0.75, "#00aa55");
+    coinGrad.addColorStop(1,    "#004d25");
 
     ctx.globalAlpha = alpha;
     ctx.fillStyle   = coinGrad;
-    ctx.shadowColor = "#ffd700";
+    ctx.shadowColor = "#00ff88";
     ctx.shadowBlur  = 9;
     ctx.beginPath();
     ctx.ellipse(px, py, xRadius, yRadius, 0, 0, Math.PI * 2);
