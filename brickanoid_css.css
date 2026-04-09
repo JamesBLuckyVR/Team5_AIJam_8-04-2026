@@ -123,6 +123,16 @@ body { background: #05060f; }
   background: radial-gradient(ellipse at center top, #0d1030 0%, #05060f 70%);
 }
 #canvas-wrap  { position: relative; }
+
+/* Mute button — floats over the top-right corner of the canvas */
+#mute-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 10;
+  background: rgba(5,6,15,0.72); border: 1px solid rgba(255,210,0,0.25);
+  border-radius: 8px; padding: 5px 8px; font-size: 16px; line-height: 1;
+  cursor: pointer; color: #fff; transition: background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(4px);
+}
+#mute-btn:hover { background: rgba(20,15,0,0.85); border-color: rgba(255,210,0,0.55); }
 #game-canvas  {
   display: block; border-radius: 10px;
   border: 1px solid rgba(255,210,0,0.18);

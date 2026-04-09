@@ -71,6 +71,7 @@
   <div id="canvas-area">
     <div id="canvas-wrap">
       <canvas id="game-canvas" width="620" height="740"></canvas>
+      <button id="mute-btn" onclick="toggleMute()" title="Toggle sound">🔊</button>
 
       <div id="splash" class="overlay">
         <div class="splash-title">BRICKANOID</div>
@@ -102,6 +103,7 @@
 <script src="engine/payout.js"></script>
 <script src="engine/brickGen.js"></script>
 <!-- Game Art team -->
+<script src="art/audio.js"></script>
 <script src="art/draw.js"></script>
 <script src="art/ui.js"></script>
 <!-- Game Engine team (physics last — needs art/ui.js for updateUI) -->

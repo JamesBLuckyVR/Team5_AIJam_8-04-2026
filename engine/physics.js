@@ -35,6 +35,7 @@ function startGame() {
   result        = null;
   phase         = "playing";
 
+  startBGM();
   addInputListeners();
   updateUI();
   gameLoop();
@@ -77,9 +78,9 @@ function gameLoop() {
   s.by += s.vy;
 
   // Wall bounces
-  if (s.bx - BALL_R < 0)        { s.bx = BALL_R;            s.vx =  Math.abs(s.vx); }
-  if (s.bx + BALL_R > CANVAS_W) { s.bx = CANVAS_W - BALL_R; s.vx = -Math.abs(s.vx); }
-  if (s.by - BALL_R < 0)        { s.by = BALL_R;             s.vy =  Math.abs(s.vy); }
+  if (s.bx - BALL_R < 0)        { s.bx = BALL_R;            s.vx =  Math.abs(s.vx); sfxWall(); }
+  if (s.bx + BALL_R > CANVAS_W) { s.bx = CANVAS_W - BALL_R; s.vx = -Math.abs(s.vx); sfxWall(); }
+  if (s.by - BALL_R < 0)        { s.by = BALL_R;             s.vy =  Math.abs(s.vy); sfxWall(); }
 
   // Paddle collision
   const py = PLAY_H - 44;
@@ -90,11 +91,13 @@ function gameLoop() {
     s.vx = Math.sin(hit * 65 * Math.PI / 180) * spd;
     s.vy = -Math.cos(hit * 65 * Math.PI / 180) * spd;
     s.by = py - BALL_R;
+    sfxPaddle();
   }
 
   // Ball dropped into cashout zone
   if (s.by + BALL_R > PLAY_H) {
     s.running = false;
+    sfxCashout();
     endRound("drop", s);
     return;
   }
@@ -115,6 +118,7 @@ function gameLoop() {
       if (b.isDeath) {
         b.revealed = true;
         s.running  = false;
+        sfxDeath();
         deathBurst = createDeathBurst(b.x + BRICK_W / 2, b.y + BRICK_H / 2);
         tickDeathBurst();
         draw();
@@ -123,6 +127,8 @@ function gameLoop() {
       }
 
       s.cleared++;
+
+      sfxCoin();
 
       // Coin burst VFX — Sonic-style coins pop out of the brick
       coinBursts.push(createCoinBurst(b.x + BRICK_W / 2, b.y + BRICK_H / 2));
@@ -144,6 +150,7 @@ function gameLoop() {
 
       if (s.cleared === tn) {
         s.running = false;
+        sfxClear();
         endRound("clear", s);
         return;
       }
