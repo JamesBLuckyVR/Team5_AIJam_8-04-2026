@@ -7,7 +7,7 @@
 
 // ── Brick grid — change COLS and ROWS to resize the playing field ─────────────
 const COLS = 10;   // ← number of brick columns
-const ROWS = 6;    // ← number of brick rows
+const ROWS = 5;    // ← number of brick rows
 
 // ── Brick dimensions ──────────────────────────────────────────────────────────
 const BRICK_W   = 56;
@@ -32,15 +32,12 @@ const PADDLE_H = 10;
 const BALL_R   = 7;
 
 // ── Game balance ──────────────────────────────────────────────────────────────
-// Index = speed level (1–5); index 0 unused
-const SPEED_BONUS = [0, 1.00, 1.10, 1.22, 1.38, 1.55];
-// Key = death-block count; value = bonus multiplier
-const DEATH_BONUS = { 5: 1.00, 10: 1.08, 22: 1.18, 30: 1.28, 38: 1.40 };
-// Pixels-per-frame for each speed level (index 0 unused)
-const SPEED_PX    = [0, 3.2, 4.2, 5.4, 6.8, 8.4];
+// Pixels-per-frame for each speed level (index 0 unused); speed is a gameplay
+// preference only and does not affect payout.
+const SPEED_PX = [0, 3.2, 4.2, 5.4, 6.8, 8.4];
 
 // ── Available options shown in the sidebar selectors ─────────────────────────
-const DEATH_OPTIONS = [5, 10, 22, 30, 38];
+const DEATH_OPTIONS = [5, 10, 15, 20, 25];
 
 // ── Visual palette ────────────────────────────────────────────────────────────
 // One color per brick row. Art team: feel free to change these.

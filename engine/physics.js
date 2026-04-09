@@ -7,7 +7,7 @@
 
 // Convenience wrapper so other files can call draw() without arguments.
 function draw() {
-  drawFrame(canvas, gs, paddleX, splashes, wager, getMultiplier(), getTotalNormal(), phase);
+  drawFrame(canvas, gs, paddleX, splashes, wager, getTotalNormal(), phase);
 }
 
 // ── Game lifecycle ────────────────────────────────────────────────────────────
@@ -45,13 +45,11 @@ function endRound(type, s) {
   cancelAnimationFrame(animFrame);
   removeInputListeners();
 
-  const pct  = s.cleared / getTotalNormal();
   const w    = parseFloat(wager) || 0;
-  const m    = getMultiplier();
   let payout = 0;
-  if      (type === "death")                    payout = 0;
-  else if (type === "drop") payout = w + w * m * payoutCurve(pct);
-  else                                           payout = w * m; // "clear" — all bricks cleared
+  if      (type === "death") payout = 0;
+  else if (type === "drop")  payout = getLivePayout(w, s.cleared);
+  else                       payout = getLivePayout(w, getTotalNormal()); // "clear"
 
   payout  = Math.round(payout * 100) / 100;
   balance = Math.round((balance - w + payout) * 100) / 100;
@@ -111,7 +109,6 @@ function gameLoop() {
 
   // Brick collisions
   const w  = parseFloat(wager) || 0;
-  const m  = getMultiplier();
   const tn = getTotalNormal();
 
   for (const b of s.bricks) {
@@ -145,14 +142,12 @@ function gameLoop() {
       if (Math.min(oL, oR) < Math.min(oT, oB)) s.vx *= -1; else s.vy *= -1;
 
       // Floating payout splash
-      const prev = w * m * payoutCurve((s.cleared - 1) / tn);
-      const next = w * m * payoutCurve(s.cleared / tn);
-      const gain = +(next - prev).toFixed(2);
+      const gain = +getPerBrickProfit(w).toFixed(2);
       if (gain > 0) splashes.push({ x: b.x + BRICK_W / 2, y: b.y + BRICK_H / 2, val: gain, born: performance.now() });
 
       // Update live payout display
       bricksCleared            = s.cleared;
-      liveVal.textContent      = `$${(w + next).toFixed(2)}`;
+      liveVal.textContent      = `$${getLivePayout(w, s.cleared).toFixed(2)}`;
       bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
 
       if (s.cleared === tn) {

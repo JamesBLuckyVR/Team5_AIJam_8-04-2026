@@ -139,7 +139,7 @@ body { background: #05060f; }
   box-shadow: 0 0 40px rgba(255,180,0,0.08), 0 0 2px rgba(255,210,0,0.25);
   max-width: 100%;
 }
-.ctrl-hint { margin-top: 10px; font-size: 11px; color: #1e2030; }
+.ctrl-hint { margin-top: 10px; font-size: 11px; color: #ffffff; }
 
 /* ── Overlays ── */
 .overlay {

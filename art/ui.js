@@ -34,8 +34,8 @@ function updateUI() {
   const w  = parseFloat(wager) || 0;
   const tn = getTotalNormal();
 
-  multEl.textContent    = `${m.toFixed(2)}×`;
-  maxPayEl.textContent  = `$${(w * m).toFixed(2)}`;
+  multEl.textContent    = `${(m - 1).toFixed(2)}×`;
+  maxPayEl.textContent  = `$${(w * (m - 1)).toFixed(2)}`;
   balanceEl.textContent = `$${balance.toFixed(2)}`;
 
   wagerInput.disabled = phase === "playing";
@@ -49,8 +49,7 @@ function updateUI() {
 
   liveBox.classList.toggle("hidden", phase !== "playing");
   if (phase === "playing") {
-    const pct = bricksCleared / tn;
-    liveVal.textContent      = `$${(w + w * m * payoutCurve(pct)).toFixed(2)}`;
+    liveVal.textContent      = `$${getLivePayout(w, bricksCleared).toFixed(2)}`;
     bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
   }
 

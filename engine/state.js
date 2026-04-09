@@ -9,7 +9,7 @@
 let phase         = "bet";   // "bet" | "playing" | "result"
 let wager         = "10.00";
 let speed         = 3;
-let deathCount    = 22;
+let deathCount    = 10;
 let balance       = 1000.00;
 let result        = null;
 let bricksCleared = 0;
