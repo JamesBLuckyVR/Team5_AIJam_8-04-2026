@@ -37,7 +37,7 @@ const BALL_R   = 7;
 const SPEED_PX = [0, 3.2, 4.2, 5.4, 6.8, 8.4];
 
 // ── Available options shown in the sidebar selectors ─────────────────────────
-const DEATH_OPTIONS = [5, 10, 15, 20, 25];
+const DEATH_OPTIONS = [5, 8, 10, 12, 15];
 
 // ── Payout distribution ───────────────────────────────────────────────────────
 // Exponential base for row value weighting. Row 0 (top) = most valuable,

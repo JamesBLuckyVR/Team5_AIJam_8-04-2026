@@ -31,13 +31,13 @@ function getBrickWeight(row) {
   return Math.pow(Q_FACTOR, (ROWS - 1) - row);
 }
 
-// Max payout multiplier: 1 + (D/T) × 10.
-// e.g. D=10 → T=50 → 1 + (10/50)×10 = 3.00×  (profit = 2× wager)
-// e.g. D=25 → T=50 → 1 + (25/50)×10 = 6.00×  (profit = 5× wager)
+// Max payout multiplier: 1 + (D/T) × 20.
+// e.g. D=5  → T=50 → 1 + (5/50)×20  = 3.00×  (profit = 2× wager)
+// e.g. D=15 → T=50 → 1 + (15/50)×20 = 7.00×  (profit = 6× wager)
 function getMultiplier() {
   const T = COLS * ROWS;
   const D = deathCount;
-  return +(1 + (D / T) * 15).toFixed(2);
+  return +(1 + (D / T) * 20).toFixed(2);
 }
 
 // Current live payout: wager returned plus profit accumulated so far.
