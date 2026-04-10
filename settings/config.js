@@ -27,7 +27,7 @@ const CANVAS_H  = PLAY_H + CASHOUT_H;
 const GRID_LEFT = GRID_PADDING_X;
 
 // ── Paddle / ball ─────────────────────────────────────────────────────────────
-const PADDLE_W = 70;
+const PADDLE_W = 84;  // 70 × 1.2 = 84 (+20%)
 const PADDLE_H = 10;
 const BALL_R   = 7;
 
