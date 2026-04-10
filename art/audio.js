@@ -130,23 +130,30 @@ function stopBGM() {
 // SOUND EFFECTS
 // =============================================================================
 
-// ── Coin collect — short rising chirp, like Sonic grabbing a ring ─────────────
+// ── WAV-file SFX helper ───────────────────────────────────────────────────────
+// Buffers are decoded once and cached; subsequent plays are instant.
 
-function sfxCoin() {
-  _play(ctx => {
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(700, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1400, ctx.currentTime + 0.07);
-    gain.gain.setValueAtTime(0.22, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.13);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.13);
-  });
+const _sfxCache = {};
+
+async function _playWav(url) {
+  if (_muted) return;
+  try {
+    const ctx = _ctx();
+    if (!_sfxCache[url]) {
+      const resp = await fetch(url);
+      const arr  = await resp.arrayBuffer();
+      _sfxCache[url] = await ctx.decodeAudioData(arr);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = _sfxCache[url];
+    src.connect(ctx.destination);
+    src.start();
+  } catch (e) {}
 }
+
+// ── Cash brick hit — blockhit.wav ─────────────────────────────────────────────
+
+function sfxCoin() { _playWav('assets/blockhit.wav'); }
 
 // ── Paddle bounce — soft low thud ─────────────────────────────────────────────
 
@@ -184,56 +191,13 @@ function sfxWall() {
   });
 }
 
-// ── Death explosion — low rumble + noise burst ────────────────────────────────
+// ── Deathblock hit — deathblock.wav ──────────────────────────────────────────
 
-function sfxDeath() {
-  _play(ctx => {
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(90, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(18, ctx.currentTime + 0.55);
-    gain.gain.setValueAtTime(0.55, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.55);
+function sfxDeath() { _playWav('assets/deathblock.wav'); }
 
-    const samples = ctx.sampleRate * 0.35;
-    const buf     = ctx.createBuffer(1, samples, ctx.sampleRate);
-    const data    = buf.getChannelData(0);
-    for (let i = 0; i < samples; i++) data[i] = Math.random() * 2 - 1;
-    const noise     = ctx.createBufferSource();
-    const noiseGain = ctx.createGain();
-    noise.buffer = buf;
-    noise.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noiseGain.gain.setValueAtTime(0.45, ctx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-    noise.start(ctx.currentTime);
-    noise.stop(ctx.currentTime + 0.35);
-  });
-}
+// ── Cashout — cashout.wav ─────────────────────────────────────────────────────
 
-// ── Cashout drop — ascending cha-ching ────────────────────────────────────────
-
-function sfxCashout() {
-  _play(ctx => {
-    [0, 0.10, 0.20].forEach((delay, i) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.setValueAtTime([523, 659, 784][i], ctx.currentTime + delay);
-      gain.gain.setValueAtTime(0.24, ctx.currentTime + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.28);
-      osc.start(ctx.currentTime + delay);
-      osc.stop(ctx.currentTime + delay + 0.28);
-    });
-  });
-}
+function sfxCashout() { _playWav('assets/cashout.wav'); }
 
 // ── All bricks cleared — victory fanfare ──────────────────────────────────────
 
