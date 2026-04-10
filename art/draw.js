@@ -92,23 +92,26 @@ function _initScene(canvas) {
   fillLight.position.set(0, -100, 500);
   _scene.add(fillLight);
 
-  // ── Floor — dark navy plane + glowing grid ────────────────────────────────
-  const floorGeo = new THREE.PlaneGeometry(CANVAS_W + 60, PLAY_H + 60);
+  // ── Floor — clamped exactly to play area so nothing is visible past the walls
+  const floorGeo = new THREE.PlaneGeometry(CANVAS_W, PLAY_H);
   const floorMat = new THREE.MeshStandardMaterial({
     color:       0x080c20,
     roughness:   0.25,
     metalness:   0.75,
     transparent: true,
-    opacity:     0.78,   // partial transparency so brick reflections below show through
+    opacity:     0.78,
   });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   _scene.add(floor);
 
-  // Grid lines — teal/blue glow like the reference image
-  const grid = new THREE.GridHelper(Math.max(CANVAS_W, PLAY_H) + 60, 20, 0x0044aa, 0x002266);
-  grid.position.y = 0.5;
+  // Grid lines — sized to match the play area only (no bleed past walls)
+  const gridSize = Math.max(CANVAS_W, PLAY_H);
+  const grid = new THREE.GridHelper(gridSize, 20, 0x0044aa, 0x002266);
+  grid.position.y  = 0.5;
+  // Clip the grid to the play area by scaling Z to match PLAY_H/gridSize
+  grid.scale.set(CANVAS_W / gridSize, 1, PLAY_H / gridSize);
   _scene.add(grid);
 
   // ── Cashout zone — prominent green plane at the near (paddle) end ────────
@@ -353,6 +356,7 @@ function _showGifEffect(worldX, worldY, worldZ, src, durationMs, sizePx) {
     'height:auto',
     'transform:translate(-50%,-50%)',
     'z-index:6',
+    'mix-blend-mode:screen',  // black pixels → transparent, colours add onto scene
   ].join(';');
 
   wrap.appendChild(img);
