@@ -40,6 +40,9 @@ function startGame() {
   result        = null;
   phase         = "playing";
 
+  const _tn = getTotalNormal();
+  if (bricksRemainHud) { bricksRemainHud.textContent = `${_tn} BRICKS REMAIN`; bricksRemainHud.classList.remove("hidden"); }
+
   startBGM();
   addInputListeners();
   updateUI();
@@ -67,6 +70,7 @@ function endRound(type, s) {
   };
   bricksCleared = s.cleared;
   phase         = "result";
+  if (bricksRemainHud) bricksRemainHud.classList.add("hidden");
   updateUI();
 }
 
@@ -159,6 +163,7 @@ function gameLoop() {
       bricksCleared            = s.cleared;
       liveVal.textContent      = `$${getLivePayout(w).toFixed(2)}`;
       bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
+      if (bricksRemainHud) bricksRemainHud.textContent = `${tn - s.cleared} BRICKS REMAIN`;
 
       if (s.cleared === tn) {
         s.running = false;
@@ -251,6 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
   liveBox        = document.getElementById("live-box");
   liveVal        = document.getElementById("live-val");
   bricksProgEl   = document.getElementById("bricks-prog");
+  bricksRemainHud = document.getElementById("bricks-remain-hud");
   resultCard     = document.getElementById("result-card");
   splashEl          = document.getElementById("splash");
   deathOverlay      = document.getElementById("death-overlay");

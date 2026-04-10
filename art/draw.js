@@ -465,25 +465,6 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
     ctx.globalAlpha = 1;
   });
 
-  // Live payout pill
-  if (gs && gs.cleared > 0) {
-    const pct = totalNormal > 0 ? gs.cleared / totalNormal : 0;
-    const cur = getLivePayout(parseFloat(wager) || 0);
-    ctx.fillStyle = "rgba(0,0,0,0.60)";
-    ctx.beginPath(); ctx.roundRect(CANVAS_W / 2 - 95, 8, 190, 26, 6); ctx.fill();
-    ctx.strokeStyle = "rgba(255,210,0,0.35)";
-    ctx.lineWidth   = 1;
-    ctx.beginPath(); ctx.roundRect(CANVAS_W / 2 - 95, 8, 190, 26, 6); ctx.stroke();
-    ctx.fillStyle    = "#ffd700";
-    ctx.font         = "bold 13px monospace";
-    ctx.textAlign    = "center";
-    ctx.textBaseline = "middle";
-    ctx.shadowColor  = "#ffaa00";
-    ctx.shadowBlur   = 6;
-    ctx.fillText(`$${cur.toFixed(2)}  (${(pct * 100).toFixed(0)}%)`, CANVAS_W / 2, 21);
-    ctx.shadowBlur   = 0;
-  }
-
   // Cashout amount is rendered via _czAmountDiv (updated in drawFrame)
 
   // Death burst screen flash on HUD canvas

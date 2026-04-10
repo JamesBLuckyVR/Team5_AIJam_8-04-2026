@@ -149,6 +149,14 @@ body { background: #0b0c1e; }
 }
 #canvas-wrap  { position: relative; }
 
+/* Bricks remaining HUD — centered at top of game canvas */
+#bricks-remain-hud {
+  position: absolute; top: 8px; left: 0; right: 0;
+  text-align: center; pointer-events: none; z-index: 5;
+  font: bold 13px monospace; color: #22d3ee;
+  text-shadow: 0 0 8px rgba(34,211,238,0.8);
+}
+
 /* Mute button — floats over the top-right corner of the canvas */
 #mute-btn {
   position: absolute; top: 8px; right: 8px; z-index: 10;

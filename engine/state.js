@@ -29,6 +29,6 @@ let coinBursts   = [];     // array of coin burst objects, one per normal brick 
 // Assigned once on DOMContentLoaded inside engine/physics.js
 let canvas, wagerInput, halfBtn, doubleBtn, betBtn;
 let balanceEl, multEl, maxPayEl, speedSel, deathSel;
-let liveBox, liveVal, bricksProgEl, resultCard;
+let liveBox, liveVal, bricksProgEl, resultCard, bricksRemainHud;
 let splashEl, deathOverlay, cashoutOverlay, cashoutCard;
 let cashoutBtn;
