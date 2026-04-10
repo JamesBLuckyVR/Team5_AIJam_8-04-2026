@@ -405,8 +405,7 @@ function _update3DBursts() {
 const COIN_DURATION = 700;
 
 function createCoinBurst(x, y) {
-  // Show green glint GIF at the struck brick's 3D position
-  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/GlintGreen01.gif', 700, 80);
+  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/GlintOrange01.gif', 700, 80);
   return { x, y, born: performance.now(), coins: [] };
 }
 
@@ -424,21 +423,30 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
   const ctx = _hudCtx;
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-  // Floating payout splashes
+  // Floating payout splashes — projected from the brick's 3D world position
   const now  = performance.now();
   const live = splashes.filter(sp => now - sp.born < 900);
   splashes.length = 0;
   live.forEach(sp => splashes.push(sp));
   live.forEach(sp => {
     const age = (now - sp.born) / 900;
+
+    // Project the brick's 3D world position to HUD canvas coordinates
+    let screenX = sp.x, screenY = sp.y;  // fallback to game coords
+    if (_camera && window.THREE) {
+      const v = new window.THREE.Vector3(gx(sp.x), BRICK_3D_H / 2, gz(sp.y)).project(_camera);
+      screenX = (v.x  + 1) / 2 * CANVAS_W;
+      screenY = (1 - v.y) / 2 * CANVAS_H;
+    }
+
     ctx.globalAlpha   = 1 - Math.pow(age, 1.4);
-    ctx.font          = `bold ${12 + age * 6}px monospace`;
+    ctx.font          = `bold ${24 + age * 12}px monospace`;   // 200% of original 12+age*6
     ctx.textAlign     = "center";
     ctx.textBaseline  = "middle";
-    ctx.fillStyle     = "#ffd700";
-    ctx.shadowColor   = "#ffaa00";
-    ctx.shadowBlur    = 12;
-    ctx.fillText(`+$${sp.val}`, sp.x, sp.y - age * 42);
+    ctx.fillStyle     = "#00ff88";    // green
+    ctx.shadowColor   = "#00cc55";
+    ctx.shadowBlur    = 16;
+    ctx.fillText(`+$${sp.val}`, screenX, screenY - age * 60);
     ctx.shadowBlur  = 0;
     ctx.globalAlpha = 1;
   });
