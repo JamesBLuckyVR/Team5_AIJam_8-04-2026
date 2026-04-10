@@ -128,6 +128,31 @@ function _initScene(canvas) {
   czMesh.position.set(0, 0.6, gz(PLAY_H) + czD / 2);
   _scene.add(czMesh);
 
+  // "CASHOUT ZONE" text baked into a canvas texture so it sits exactly on
+  // the 3D green plane regardless of camera angle.
+  const czTxtCanvas = document.createElement('canvas');
+  czTxtCanvas.width  = 1024;
+  czTxtCanvas.height = 256;
+  const czTxtCtx = czTxtCanvas.getContext('2d');
+  czTxtCtx.clearRect(0, 0, 1024, 256);
+  czTxtCtx.font         = 'bold 110px monospace';
+  czTxtCtx.textAlign    = 'center';
+  czTxtCtx.textBaseline = 'middle';
+  czTxtCtx.shadowColor  = '#00ff88';
+  czTxtCtx.shadowBlur   = 28;
+  czTxtCtx.fillStyle    = '#ffffff';
+  czTxtCtx.fillText('CASHOUT ZONE', 512, 128);
+  const czTxtTex = new THREE.CanvasTexture(czTxtCanvas);
+  const czTxtMat = new THREE.MeshBasicMaterial({
+    map:         czTxtTex,
+    transparent: true,
+    depthWrite:  false,
+  });
+  const czTxtMesh = new THREE.Mesh(new THREE.PlaneGeometry(czW, czD), czTxtMat);
+  czTxtMesh.rotation.x = -Math.PI / 2;
+  czTxtMesh.position.set(0, 1.2, gz(PLAY_H) + czD / 2);  // just above the green plane
+  _scene.add(czTxtMesh);
+
   // Thin glowing green edge line separating play area from cashout
   const edgeGeo = new THREE.BoxGeometry(CANVAS_W, 1.5, 2);
   const edgeMat = new THREE.MeshStandardMaterial({
@@ -491,21 +516,6 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
     ctx.fillText(`$${cur.toFixed(2)}  (${(pct * 100).toFixed(0)}%)`, CANVAS_W / 2, 21);
     ctx.shadowBlur   = 0;
   }
-
-  // ── CASHOUT ZONE label ────────────────────────────────────────────────────
-  const czY = PLAY_H + CASHOUT_H / 2;   // vertical centre of the cashout strip
-  ctx.save();
-  ctx.globalAlpha   = 0.92;
-  ctx.font          = `bold ${Math.round(CASHOUT_H * 0.38)}px monospace`;
-  ctx.textAlign     = "center";
-  ctx.textBaseline  = "middle";
-  ctx.letterSpacing = "3px";
-  ctx.fillStyle     = "#ffffff";
-  ctx.shadowColor   = "#00ff88";
-  ctx.shadowBlur    = 18;
-  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, czY);
-  ctx.shadowBlur    = 0;
-  ctx.restore();
 
   // Death burst screen flash on HUD canvas
   if (typeof deathBurst !== "undefined" && deathBurst) {
