@@ -7,7 +7,7 @@
 
 // ── Brick grid — change COLS and ROWS to resize the playing field ─────────────
 const COLS = 10;   // ← number of brick columns
-const ROWS = 8;    // ← number of brick rows
+const ROWS = 5;    // ← number of brick rows
 
 // ── Brick dimensions ──────────────────────────────────────────────────────────
 const BRICK_W   = 56;
