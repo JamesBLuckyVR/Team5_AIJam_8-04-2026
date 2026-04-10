@@ -20,9 +20,8 @@ let _coin3DParticles = [];      // active coin burst meshes
 let _hudCanvas  = null;
 let _hudCtx     = null;
 let _lastGs     = null;         // previous gs reference to detect new game
-let _explosionTex  = null;      // texture for the death burst sprite
-let _deathSprite   = null;      // active explosion sprite mesh
-let _coinSparkTex  = null;      // texture for coin burst sprites
+let _explosionTex  = null;      // (kept for compat — no longer used for sprites)
+let _deathSprite   = null;      // (kept for compat — no longer used)
 
 // ── 2D → 3D coordinate helpers ────────────────────────────────────────────────
 // Game X (0…CANVAS_W) → 3D X (−CW/2 … +CW/2)
@@ -225,11 +224,7 @@ function _initScene(canvas) {
   _paddleMesh.castShadow = true;
   _scene.add(_paddleMesh);
 
-  // ── Explosion texture (death burst) ──────────────────────────────────────
-  _explosionTex = new THREE.TextureLoader().load('art/explosion.png');
-
-  // ── Coin spark texture (brick hit reward) ─────────────────────────────────
-  _coinSparkTex = new THREE.TextureLoader().load('art/coin_spark.png');
+  // GIF effects are rendered as HTML img elements (see _showGifEffect)
 
   // ── HUD canvas ────────────────────────────────────────────────────────────
   _hudCanvas = document.getElementById("hud-canvas");
@@ -329,47 +324,62 @@ function _getDeathRevealMat() {
   return _deathRevealMat;
 }
 
-// ── 3D Death burst — sprite explosion ─────────────────────────────────────────
+// ── GIF effect overlay ────────────────────────────────────────────────────────
+// Projects a 3D world position to CSS pixels and shows an animated GIF <img>
+// as an absolutely-positioned child of #canvas-wrap. GIFs animate natively.
 
-const BURST_DURATION = 1200;
-
-function createDeathBurst(x, y) {
+function _showGifEffect(worldX, worldY, worldZ, src, durationMs, sizePx) {
+  if (!_camera || !_hudCanvas) return;
   const THREE = window.THREE;
 
-  // Remove any leftover sprite from a previous round
-  if (_deathSprite) {
-    _scene.remove(_deathSprite);
-    _deathSprite.material.dispose();
-    _deathSprite = null;
-  }
+  // Project 3D world → Normalised Device Coordinates
+  const v = new THREE.Vector3(worldX, worldY, worldZ).project(_camera);
 
-  if (_explosionTex) {
-    const mat = new THREE.SpriteMaterial({
-      map:         _explosionTex,
-      transparent: true,
-      opacity:     1,
-      blending:    THREE.AdditiveBlending,  // fire colors add onto the dark scene
-      depthWrite:  false,
-    });
-    const sprite = new THREE.Sprite(mat);
-    // Position at the struck brick, slightly above the floor
-    sprite.position.set(gx(x), BRICK_3D_H + 10, gz(y));
-    sprite.scale.set(1, 1, 1);               // starts tiny, grows in _update3DBursts
-    sprite.userData.born = performance.now();
-    _scene.add(sprite);
-    _deathSprite = sprite;
-  }
+  // Convert NDC to CSS pixels relative to canvas-wrap
+  const wrap = _hudCanvas.parentElement;
+  if (!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const cssX = (v.x  + 1) / 2 * rect.width;
+  const cssY = (1 - v.y) / 2 * rect.height;
 
-  // Return the standard burst object (born/particles) so physics.js is unaffected
+  const img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = [
+    'position:absolute',
+    'pointer-events:none',
+    `left:${cssX}px`,
+    `top:${cssY}px`,
+    `width:${sizePx}px`,
+    'height:auto',
+    'transform:translate(-50%,-50%)',
+    'z-index:6',
+  ].join(';');
+
+  wrap.appendChild(img);
+  setTimeout(() => { if (img.parentElement) img.parentElement.removeChild(img); }, durationMs);
+}
+
+// ── Paddle hit effect ─────────────────────────────────────────────────────────
+// Called from physics.js after each paddle bounce.
+function showPaddleEffect(px) {
+  const padCX = px + PADDLE_W / 2;
+  _showGifEffect(gx(padCX), 7, gz(PLAY_H - 44), 'assets/GlintBlue01.gif', 700, 100);
+}
+
+// ── Death burst — deathblock.gif ──────────────────────────────────────────────
+
+const BURST_DURATION = 1500;
+
+function createDeathBurst(x, y) {
+  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/deathblock.gif', 1500, 200);
   return { x, y, born: performance.now(), particles: [] };
 }
 
 function drawDeathBurst(ctx) {
-  // Draw a brief red screen flash on the HUD canvas to complement the 3D sprite
+  // Brief red screen flash on the HUD canvas
   if (!deathBurst || !ctx) return;
   const age = (performance.now() - deathBurst.born) / BURST_DURATION;
   if (age >= 1) return;
-
   const flashAlpha = Math.max(0, 0.5 * (1 - age / 0.25));
   if (flashAlpha > 0) {
     ctx.globalAlpha = flashAlpha;
@@ -380,105 +390,27 @@ function drawDeathBurst(ctx) {
 }
 
 function _update3DBursts() {
-  // Animate the explosion sprite: quick scale-up then fade out
-  if (_deathSprite) {
-    const age     = (performance.now() - _deathSprite.userData.born) / BURST_DURATION;
-    const maxSize = 220;
-    // Rapid expansion in the first 40% of the animation, then holds size
-    const scale   = maxSize * Math.min(1, age / 0.4);
-    // Opacity: stays full until ~30% then fades out
-    const opacity = Math.max(0, 1 - Math.pow(Math.max(0, (age - 0.3) / 0.7), 0.6));
-
-    _deathSprite.scale.set(scale, scale, 1);
-    _deathSprite.material.opacity = opacity;
-
-    if (age >= 1) {
-      _scene.remove(_deathSprite);
-      _deathSprite.material.dispose();
-      _deathSprite = null;
-    }
-  }
-
-  // Keep deathBurst in sync so physics.js tickDeathBurst works unchanged
   if (deathBurst) {
     const age = (performance.now() - deathBurst.born) / BURST_DURATION;
     if (age >= 1) deathBurst = null;
   }
 }
 
-// ── 3D Coin burst — green spark sprites ───────────────────────────────────────
+// ── Coin burst — GlintGreen01.gif ─────────────────────────────────────────────
 
-const COIN_DURATION = 750;
-const COIN_GRAVITY  = 160;
-
-let _coinSparkTex = null;   // loaded once in _initScene
+const COIN_DURATION = 700;
 
 function createCoinBurst(x, y) {
-  const THREE = window.THREE;
-  const coins  = [];
-  const count  = 6;
-
-  for (let i = 0; i < count; i++) {
-    // Fan upward with random spread
-    const angle = (-Math.PI / 2) + ((Math.random() - 0.5) * Math.PI * 0.9);
-    const speed = 70 + Math.random() * 90;
-    const size  = 28 + Math.random() * 22;
-
-    const mat = new THREE.SpriteMaterial({
-      map:         _coinSparkTex,
-      transparent: true,
-      opacity:     1,
-      blending:    THREE.AdditiveBlending,
-      depthWrite:  false,
-    });
-    const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(size, size, 1);
-    sprite.position.set(gx(x), BRICK_3D_H / 2 + 6, gz(y));
-    _scene.add(sprite);
-
-    coins.push({
-      mesh: sprite,       // keep 'mesh' key so existing cleanup code works
-      vx:   Math.cos(angle) * speed * 0.5,
-      vy:   Math.abs(Math.sin(angle)) * speed + 50,
-      vz:   (Math.random() - 0.5) * speed * 0.4,
-      born: performance.now(),
-      life: 0.5 + Math.random() * 0.5,
-    });
-  }
-  return { x, y, born: performance.now(), coins };
+  // Show green glint GIF at the struck brick's 3D position
+  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/GlintGreen01.gif', 700, 80);
+  return { x, y, born: performance.now(), coins: [] };
 }
 
 function _update3DCoins() {
+  // GIF effects manage their own lifetime via setTimeout — just expire the burst objects
   if (!coinBursts || !coinBursts.length) return;
-
-  const now   = performance.now();
-  const alive = [];
-
-  coinBursts.forEach(burst => {
-    const elapsed = (now - burst.born) / 1000;
-    const age     = (now - burst.born) / COIN_DURATION;
-
-    if (age >= 1) {
-      burst.coins.forEach(c => { _scene.remove(c.mesh); c.mesh.material.dispose(); });
-      return;
-    }
-
-    burst.coins.forEach(c => {
-      const pAge = age / c.life;
-      if (pAge >= 1) { c.mesh.visible = false; return; }
-      const alpha = Math.max(0, 1 - Math.pow(pAge, 1.4));
-      c.mesh.position.x = gx(burst.x) + c.vx * elapsed;
-      c.mesh.position.y = BRICK_3D_H / 2 + 6 + c.vy * elapsed - 0.5 * COIN_GRAVITY * elapsed * elapsed;
-      c.mesh.position.z = gz(burst.y) + c.vz * elapsed;
-      c.mesh.material.opacity = alpha;
-      c.mesh.visible = alpha > 0.01;
-    });
-
-    alive.push(burst);
-  });
-
-  coinBursts.length = 0;
-  alive.forEach(b => coinBursts.push(b));
+  const now = performance.now();
+  coinBursts.length = 0; // clear; physics.js re-pushes active bursts each frame
 }
 
 // ── HUD canvas drawing (text overlays) ────────────────────────────────────────

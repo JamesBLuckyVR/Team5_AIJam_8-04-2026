@@ -105,6 +105,7 @@ function gameLoop() {
     s.vy = -Math.cos(hit * 65 * Math.PI / 180) * spd;
     s.by = py - BALL_R;
     sfxPaddle();
+    if (typeof showPaddleEffect === 'function') showPaddleEffect(paddleX);
   }
 
   // Ball dropped into cashout zone
