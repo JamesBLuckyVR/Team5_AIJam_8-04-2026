@@ -7,7 +7,7 @@
 
 // ── Brick grid — change COLS and ROWS to resize the playing field ─────────────
 const COLS = 10;   // ← number of brick columns
-const ROWS = 5;    // ← number of brick rows
+const ROWS = 8;    // ← number of brick rows
 
 // ── Brick dimensions ──────────────────────────────────────────────────────────
 const BRICK_W   = 56;
@@ -15,7 +15,7 @@ const BRICK_H   = 24;
 const BRICK_GAP = 3;
 
 // ── Layout padding — derived canvas size adjusts automatically ────────────────
-const GRID_TOP            = 40;   // space above the brick grid (px)
+const GRID_TOP            = 12;   // space above the brick grid (px)
 const GRID_PADDING_X      = 16.5; // horizontal margin on each side of the grid (px)
 const GRID_PADDING_BOTTOM = 320;  // space below bricks to bottom of play area — ball & paddle room (px)
 const CASHOUT_H           = 130;  // height of the cashout zone bar (px)
