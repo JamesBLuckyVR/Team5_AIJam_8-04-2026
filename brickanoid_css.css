@@ -35,13 +35,6 @@ body { background: #0b0c1e; }
   filter: drop-shadow(0 0 10px rgba(168,85,247,0.4));
 }
 
-/* Tabs */
-.tabs { display: flex; background: #080918; border-radius: 8px; padding: 3px; gap: 3px; }
-.tab  { flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-.tab.active       { background: rgba(34,211,238,0.08); color: #22d3ee; border: 1px solid rgba(34,211,238,0.35); }
-.tab:not(.active) { background: transparent; color: #4b5563; border: 1px solid transparent; }
-.tab:not(.active):hover { color: #6b7280; }
-
 /* Section labels */
 .sec-label      { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #4b5563; margin-bottom: 6px; }
 .sec-label.cyan { color: #4b5563; }
