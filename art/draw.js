@@ -492,6 +492,21 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
     ctx.shadowBlur   = 0;
   }
 
+  // ── CASHOUT ZONE label ────────────────────────────────────────────────────
+  const czY = PLAY_H + CASHOUT_H / 2;   // vertical centre of the cashout strip
+  ctx.save();
+  ctx.globalAlpha   = 0.92;
+  ctx.font          = `bold ${Math.round(CASHOUT_H * 0.38)}px monospace`;
+  ctx.textAlign     = "center";
+  ctx.textBaseline  = "middle";
+  ctx.letterSpacing = "3px";
+  ctx.fillStyle     = "#ffffff";
+  ctx.shadowColor   = "#00ff88";
+  ctx.shadowBlur    = 18;
+  ctx.fillText("CASHOUT ZONE", CANVAS_W / 2, czY);
+  ctx.shadowBlur    = 0;
+  ctx.restore();
+
   // Death burst screen flash on HUD canvas
   if (typeof deathBurst !== "undefined" && deathBurst) {
     drawDeathBurst(ctx);
