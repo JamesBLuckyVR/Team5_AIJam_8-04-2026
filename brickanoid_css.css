@@ -180,6 +180,33 @@ body { background: #0b0c1e; }
 }
 .ctrl-hint { margin-top: 6px; font-size: 11px; color: #ffffff; }
 
+/* ── Countdown overlay ── */
+#countdown-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5,6,15,0.88);
+  border-radius: 10px;
+  z-index: 20;
+}
+#countdown-text { font-family: monospace; font-weight: 900; letter-spacing: 4px; text-align: center; }
+#countdown-text.cd-ready {
+  font-size: 72px; color: #22d3ee;
+  text-shadow: 0 0 30px #22d3ee, 0 0 60px #22d3ee;
+  animation: cdBlink 0.45s ease-in-out infinite;
+}
+#countdown-text.cd-count {
+  font-size: 180px; color: #fbbf24;
+  text-shadow: 0 0 40px #fbbf24, 0 0 90px #fbbf24;
+  animation: cdPop 0.18s ease-out forwards;
+}
+#countdown-text.cd-go {
+  font-size: 110px; color: #00ff88;
+  text-shadow: 0 0 40px #00ff88, 0 0 90px #00ff88;
+  animation: cdPop 0.15s ease-out forwards;
+}
+@keyframes cdBlink { 0%,100%{opacity:1} 50%{opacity:0.08} }
+@keyframes cdPop   { 0%{transform:scale(1.6);opacity:0} 100%{transform:scale(1);opacity:1} }
+
 /* ── Overlays ── */
 .overlay {
   position: absolute; inset: 0;

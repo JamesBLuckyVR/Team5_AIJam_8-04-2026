@@ -25,7 +25,7 @@ function startGame() {
     vy: -Math.sin(angle) * spd,
     bricks:  generateBricks(deathCount, Math.floor(Math.random() * 0xffffffff)),
     cleared: 0,
-    running: true,
+    running: false,   // held until countdown finishes
   };
   paddleX       = CANVAS_W / 2 - PADDLE_W / 2;
   splashes      = [];
@@ -43,10 +43,16 @@ function startGame() {
   const _tn = getTotalNormal();
   if (bricksRemainHud) { bricksRemainHud.textContent = `${_tn} BRICKS REMAIN`; bricksRemainHud.classList.remove("hidden"); }
 
-  startBGM();
-  addInputListeners();
-  updateUI();
-  gameLoop();
+  stopBGM();           // silence everything before countdown
+  addInputListeners(); // let player move paddle during countdown
+  updateUI();          // hide splash, show game field
+  draw();              // render first frame so bricks are visible
+
+  _runCountdown(() => {
+    gs.running = true;
+    startBGM();
+    gameLoop();
+  });
 }
 
 function endRound(type, s) {
@@ -79,6 +85,54 @@ function manualCashout() {
   gs.running = false;
   sfxCashout();
   endRound("drop", gs);
+}
+
+// ── Pre-game countdown ────────────────────────────────────────────────────────
+
+function _runCountdown(onComplete) {
+  const overlay = document.getElementById('countdown-overlay');
+  const textEl  = document.getElementById('countdown-text');
+  if (!overlay || !textEl) { onComplete(); return; }
+
+  // Start countdown audio and keep a reference so we can stop it before GO!
+  let _cdSrc = null;
+  if (typeof sfxCountdown === 'function') {
+    Promise.resolve(sfxCountdown()).then(src => { _cdSrc = src; });
+  }
+
+  const steps = [
+    { text: 'READY?', cls: 'cd-ready', dur: 1600 },
+    { text: '3',      cls: 'cd-count', dur: 900  },
+    { text: '2',      cls: 'cd-count', dur: 900  },
+    { text: '1',      cls: 'cd-count', dur: 900  },
+    { text: 'GO!',    cls: 'cd-go',    dur: 800,
+      sfx: () => {
+        // Stop the countdown music before the airhorn
+        try { if (_cdSrc) { _cdSrc.stop(); _cdSrc = null; } } catch (_) {}
+        if (typeof sfxAirhorn === 'function') sfxAirhorn();
+      }
+    },
+  ];
+
+  overlay.classList.remove('hidden');
+  let i = 0;
+
+  function next() {
+    if (i >= steps.length) {
+      overlay.classList.add('hidden');
+      textEl.className = '';
+      onComplete();
+      return;
+    }
+    const s = steps[i++];
+    textEl.textContent = s.text;
+    // Force CSS animation restart by swapping class
+    textEl.className = '';
+    requestAnimationFrame(() => { textEl.className = s.cls; });
+    if (s.sfx) s.sfx();
+    setTimeout(next, s.dur);
+  }
+  next();
 }
 
 // ── Main animation loop ───────────────────────────────────────────────────────

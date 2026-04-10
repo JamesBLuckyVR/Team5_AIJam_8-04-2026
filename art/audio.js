@@ -136,7 +136,7 @@ function stopBGM() {
 const _sfxCache = {};
 
 async function _playWav(url) {
-  if (_muted) return;
+  if (_muted) return null;
   try {
     const ctx = _ctx();
     if (!_sfxCache[url]) {
@@ -148,8 +148,14 @@ async function _playWav(url) {
     src.buffer = _sfxCache[url];
     src.connect(ctx.destination);
     src.start();
-  } catch (e) {}
+    return src;   // caller can call src.stop() to cut it early
+  } catch (e) { return null; }
 }
+
+// ── Countdown & airhorn ───────────────────────────────────────────────────────
+
+function sfxCountdown() { return _playWav('assets/countdown.mp3'); }  // returns Promise<AudioBufferSourceNode>
+function sfxAirhorn()   { _playWav('assets/airhorn.mp3'); }
 
 // ── Cash brick hit — blockhit.wav ─────────────────────────────────────────────
 
