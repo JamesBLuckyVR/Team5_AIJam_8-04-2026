@@ -53,15 +53,15 @@ function _initScene(canvas) {
   // Scene
   _scene = new THREE.Scene();
   _scene.background = new THREE.Color(0x07091a);
-  // Light fog — starts much further so bricks are never fogged out
-  _scene.fog = new THREE.Fog(0x07091a, 900, 1600);
+  // Fog tuned to the field depth — starts past the far wall, fades distant geometry.
+  _scene.fog = new THREE.Fog(0x07091a, 700, 1300);
 
-  // Camera — overhead perspective centered on the full play field.
-  // Pushed further back in Z so the cashout zone doesn't dominate the bottom
-  // of the frame, and raised slightly in Y for a more balanced top-down angle.
+  // Camera — anchored relative to PLAY_H so it auto-adjusts when config changes.
+  // Positioned behind the cashout zone (Z = PLAY_H/2 + buffer) and angled
+  // down toward the upper quarter of the field for a balanced overhead view.
   _camera = new THREE.PerspectiveCamera(50, CANVAS_W / CANVAS_H, 1, 2500);
-  _camera.position.set(0, 1150, 260);
-  _camera.lookAt(0, 0, -40);
+  _camera.position.set(0, 900, PLAY_H / 2 + 120);
+  _camera.lookAt(0, 0, -PLAY_H / 4);
 
   // ── Lighting ─────────────────────────────────────────────────────────────
   const ambient = new THREE.AmbientLight(0x112244, 0.8);
@@ -97,16 +97,17 @@ function _initScene(canvas) {
   grid.position.y = 0.5;
   _scene.add(grid);
 
-  // ── Cashout zone — subtle green plane at the near (paddle) end ───────────
-  // Depth is capped so it doesn't appear enormous from the overhead camera.
+  // ── Cashout zone — prominent green plane at the near (paddle) end ────────
+  // 3D depth scaled proportionally to CASHOUT_H but capped so perspective
+  // distortion stays reasonable when the camera is close.
   const czW = CANVAS_W;
-  const czD = Math.min(CASHOUT_H, 40);
+  const czD = Math.min(CASHOUT_H, 100);
   const czGeo = new THREE.PlaneGeometry(czW, czD);
   const czMat = new THREE.MeshStandardMaterial({
-    color:             0x0a2e14,
-    emissive:          0x0e5226,
-    emissiveIntensity: 0.28,
-    roughness:         0.9,
+    color:             0x0c3a1c,
+    emissive:          0x16743a,
+    emissiveIntensity: 0.40,
+    roughness:         0.85,
   });
   const czMesh = new THREE.Mesh(czGeo, czMat);
   czMesh.rotation.x = -Math.PI / 2;
