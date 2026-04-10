@@ -29,16 +29,14 @@ let _deathSprite   = null;      // active explosion sprite mesh
 function gx(x) { return x - CANVAS_W / 2; }
 function gz(y) { return y - PLAY_H  / 2; }
 
-// ── Row gem materials — one vivid gem per row, cycles for extra rows ──────────
+// ── Row gem materials — mirrors BRICK_COLORS in config.js so 3D hues match 2D ─
+// Cycles with the same 5-entry length so row % 5 produces the same pattern.
 const ROW_MAT_DEFS = [
-  { color: 0xdd0033, emissive: 0xff1144, emissiveIntensity: 1.0 }, // Ruby
-  { color: 0x00bb55, emissive: 0x00ff77, emissiveIntensity: 1.1 }, // Emerald
-  { color: 0x0055ee, emissive: 0x3388ff, emissiveIntensity: 1.0 }, // Sapphire
-  { color: 0x9900cc, emissive: 0xcc55ff, emissiveIntensity: 1.1 }, // Amethyst
-  { color: 0xdd7700, emissive: 0xffaa00, emissiveIntensity: 1.2 }, // Topaz
-  { color: 0x00cccc, emissive: 0x55ffff, emissiveIntensity: 1.1 }, // Aquamarine
-  { color: 0xaacc00, emissive: 0xddff00, emissiveIntensity: 1.0 }, // Peridot
-  { color: 0xcc0099, emissive: 0xff33cc, emissiveIntensity: 1.1 }, // Garnet
+  { color: 0xc0392b, emissive: 0xe84040, emissiveIntensity: 0.9 }, // Crimson  (#c0392b)
+  { color: 0xe67e22, emissive: 0xff9933, emissiveIntensity: 0.9 }, // Orange   (#e67e22)
+  { color: 0xf1c40f, emissive: 0xffdd00, emissiveIntensity: 1.0 }, // Yellow   (#f1c40f)
+  { color: 0x27ae60, emissive: 0x2ecc71, emissiveIntensity: 0.9 }, // Green    (#27ae60)
+  { color: 0x2980b9, emissive: 0x3498db, emissiveIntensity: 0.9 }, // Blue     (#2980b9)
 ];
 
 // ── Lazy scene initialisation ─────────────────────────────────────────────────
