@@ -17,7 +17,7 @@ const BRICK_GAP = 3;
 // ── Layout padding — derived canvas size adjusts automatically ────────────────
 const GRID_TOP            = 0;    // space above the brick grid (px)
 const GRID_PADDING_X      = 16.5; // horizontal margin on each side of the grid (px)
-const GRID_PADDING_BOTTOM = 480;  // space below bricks to bottom of play area — ball & paddle room (px)
+const GRID_PADDING_BOTTOM = 360;  // space below bricks to bottom of play area — ball & paddle room (px)
 const CASHOUT_H           = 130;  // height of the cashout zone bar (px)
 
 // ── Derived dimensions — do not edit these directly ───────────────────────────
