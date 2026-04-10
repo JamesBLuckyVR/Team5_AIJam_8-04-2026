@@ -22,7 +22,9 @@ let _hudCtx     = null;
 let _lastGs     = null;         // previous gs reference to detect new game
 let _explosionTex  = null;      // (kept for compat — no longer used for sprites)
 let _deathSprite   = null;      // (kept for compat — no longer used)
-let _czAmountDiv   = null;      // persistent div showing live payout on cashout zone
+let _czAmountDiv   = null;      // persistent div showing live payout on cashout zone (unused, kept for compat)
+let _czTxtCtx      = null;      // 2D context of the cashout zone canvas texture
+let _czTxtTex      = null;      // Three.js CanvasTexture — set needsUpdate each frame
 
 // ── 2D → 3D coordinate helpers ────────────────────────────────────────────────
 // Game X (0…CANVAS_W) → 3D X (−CW/2 … +CW/2)
@@ -132,29 +134,21 @@ function _initScene(canvas) {
   czMesh.position.set(0, 0.6, gz(PLAY_H) + czD / 2);
   _scene.add(czMesh);
 
-  // "CASHOUT ZONE" text baked into a canvas texture so it sits exactly on
-  // the 3D green plane regardless of camera angle.
+  // Canvas texture for the cashout zone — holds "CASHOUT ZONE" label (top half)
+  // and the live payout amount (bottom half), updated every frame.
   const czTxtCanvas = document.createElement('canvas');
   czTxtCanvas.width  = 1024;
   czTxtCanvas.height = 256;
-  const czTxtCtx = czTxtCanvas.getContext('2d');
-  czTxtCtx.clearRect(0, 0, 1024, 256);
-  czTxtCtx.font         = 'bold 110px monospace';
-  czTxtCtx.textAlign    = 'center';
-  czTxtCtx.textBaseline = 'middle';
-  czTxtCtx.shadowColor  = '#00ff88';
-  czTxtCtx.shadowBlur   = 28;
-  czTxtCtx.fillStyle    = '#ffffff';
-  czTxtCtx.fillText('CASHOUT ZONE', 512, 128);
-  const czTxtTex = new THREE.CanvasTexture(czTxtCanvas);
+  _czTxtCtx = czTxtCanvas.getContext('2d');
+  _czTxtTex = new THREE.CanvasTexture(czTxtCanvas);
   const czTxtMat = new THREE.MeshBasicMaterial({
-    map:         czTxtTex,
+    map:         _czTxtTex,
     transparent: true,
     depthWrite:  false,
   });
   const czTxtMesh = new THREE.Mesh(new THREE.PlaneGeometry(czW, czD), czTxtMat);
   czTxtMesh.rotation.x = -Math.PI / 2;
-  czTxtMesh.position.set(0, 1.2, gz(PLAY_H) + czD / 2);  // just above the green plane
+  czTxtMesh.position.set(0, 1.2, gz(PLAY_H) + czD / 2);
   _scene.add(czTxtMesh);
 
   // Thin glowing green edge line separating play area from cashout
@@ -563,26 +557,38 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   // ── Render 3D scene ───────────────────────────────────────────────────────
   _renderer.render(_scene, _camera);
 
-  // ── Cashout amount div — project czMesh centre to CSS coords ─────────────
-  try {
-    if (_czAmountDiv && window.THREE) {
-      const running = gs && gs.running;
-      _czAmountDiv.style.display = running ? 'block' : 'none';
-      if (running) {
-        const wrap = _czAmountDiv.parentElement;
-        if (wrap) {
-          const czD  = Math.min(CASHOUT_H, 100);
-          const v    = new window.THREE.Vector3(0, 0.6, PLAY_H / 2 + czD / 2).project(_camera);
-          const rect = wrap.getBoundingClientRect();
-          _czAmountDiv.style.left = `${(v.x + 1) / 2 * rect.width}px`;
-          _czAmountDiv.style.top  = `${(1 - v.y) / 2 * rect.height}px`;
-          const pulse = 0.9 + 0.1 * Math.sin(performance.now() / 280);
-          _czAmountDiv.style.fontSize = `${Math.round(30 * pulse)}px`;
-          _czAmountDiv.textContent = `$${getLivePayout(parseFloat(wager) || 0).toFixed(2)}`;
-        }
-      }
+  // ── Update cashout zone canvas texture with live payout amount ───────────
+  if (_czTxtCtx && _czTxtTex) {
+    const ctx2 = _czTxtCtx;
+    ctx2.clearRect(0, 0, 1024, 256);
+
+    // Top half: "CASHOUT ZONE" label
+    ctx2.font         = 'bold 88px monospace';
+    ctx2.textAlign    = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.shadowColor  = '#00ff88';
+    ctx2.shadowBlur   = 22;
+    ctx2.fillStyle    = '#ffffff';
+    ctx2.fillText('CASHOUT ZONE', 512, 80);
+
+    // Bottom half: live payout amount (only while ball is running)
+    if (gs && gs.running) {
+      const cur   = getLivePayout(parseFloat(wager) || 0);
+      const pulse = 0.88 + 0.12 * Math.sin(performance.now() / 280);
+      ctx2.font        = `bold ${Math.round(82 * pulse)}px monospace`;
+      ctx2.shadowColor = '#00ff88';
+      ctx2.shadowBlur  = 30;
+      ctx2.fillStyle   = '#00ff88';
+      ctx2.fillText(`$${cur.toFixed(2)}`, 512, 188);
+      // white core
+      ctx2.shadowBlur = 0;
+      ctx2.fillStyle  = '#ffffff';
+      ctx2.font       = `bold ${Math.round(74 * pulse)}px monospace`;
+      ctx2.fillText(`$${cur.toFixed(2)}`, 512, 188);
     }
-  } catch (_) {} // never let UI code stop the game loop
+
+    _czTxtTex.needsUpdate = true;
+  }
 
   // ── HUD canvas (text overlay) ─────────────────────────────────────────────
   _drawHUD(splashes, wager, mult, totalNormal, gs);
