@@ -56,14 +56,15 @@ function _initScene(canvas) {
   // Fog tuned to the field depth — starts past the far wall, fades distant geometry.
   _scene.fog = new THREE.Fog(0x07091a, 700, 1300);
 
-  // Camera — near-overhead with a gentle tilt toward the bricks.
-  // Horizontally centred over the full canvas (play area + cashout zone):
-  //   camera Z = CASHOUT_H / 2  (midpoint of the cashout strip in 3D)
-  // LookAt is shifted slightly toward the bricks (-PLAY_H/6) so the
-  // field reads top-to-bottom: bricks at top, cashout zone at bottom.
-  // FOV 55° gives just enough width to frame the whole field in one shot.
-  _camera = new THREE.PerspectiveCamera(55, CANVAS_W / CANVAS_H, 1, 2500);
-  _camera.position.set(0, 700, CASHOUT_H / 2);
+  // Camera — near-overhead with a gentle ~11° tilt toward the bricks.
+  // Camera is centred in X/Z over the full canvas and elevated high enough
+  // that the frustum covers the entire field in one shot:
+  //   - Top    of frame → bricks  (Z ≈ -PLAY_H/2)
+  //   - Bottom of frame → cashout (Z ≈ PLAY_H/2 + CASHOUT_H/2)
+  // FOV 65° is the key: at 55° the bottom frustum ray misses the cashout
+  // zone; 65° extends it far enough to include the full cashout strip.
+  _camera = new THREE.PerspectiveCamera(65, CANVAS_W / CANVAS_H, 1, 2500);
+  _camera.position.set(0, 800, CASHOUT_H / 2);
   _camera.lookAt(0, 0, -PLAY_H / 6);
 
   // ── Lighting ─────────────────────────────────────────────────────────────
