@@ -29,13 +29,16 @@ let _deathSprite   = null;      // active explosion sprite mesh
 function gx(x) { return x - CANVAS_W / 2; }
 function gz(y) { return y - PLAY_H  / 2; }
 
-// ── Row materials ─────────────────────────────────────────────────────────────
+// ── Row gem materials — one vivid gem per row, cycles for extra rows ──────────
 const ROW_MAT_DEFS = [
-  { color: 0x1a2240, emissive: 0x2244aa, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.7 }, // Dark Glass
-  { color: 0xb07800, emissive: 0xffcc00, emissiveIntensity: 0.6, roughness: 0.2, metalness: 0.9 }, // Gold Coin
-  { color: 0x505868, emissive: 0x8899bb, emissiveIntensity: 0.3, roughness: 0.2, metalness: 0.9 }, // Silver Chrome
-  { color: 0x0a2260, emissive: 0x2255cc, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.6 }, // Sapphire
-  { color: 0x1e3050, emissive: 0x7aaad8, emissiveIntensity: 0.4, roughness: 0.2, metalness: 0.7 }, // Crystal
+  { color: 0xdd0033, emissive: 0xff1144, emissiveIntensity: 1.0 }, // Ruby
+  { color: 0x00bb55, emissive: 0x00ff77, emissiveIntensity: 1.1 }, // Emerald
+  { color: 0x0055ee, emissive: 0x3388ff, emissiveIntensity: 1.0 }, // Sapphire
+  { color: 0x9900cc, emissive: 0xcc55ff, emissiveIntensity: 1.1 }, // Amethyst
+  { color: 0xdd7700, emissive: 0xffaa00, emissiveIntensity: 1.2 }, // Topaz
+  { color: 0x00cccc, emissive: 0x55ffff, emissiveIntensity: 1.1 }, // Aquamarine
+  { color: 0xaacc00, emissive: 0xddff00, emissiveIntensity: 1.0 }, // Peridot
+  { color: 0xcc0099, emissive: 0xff33cc, emissiveIntensity: 1.1 }, // Garnet
 ];
 
 // ── Lazy scene initialisation ─────────────────────────────────────────────────
@@ -69,19 +72,26 @@ function _initScene(canvas) {
   _camera.position.set(0, 800, CASHOUT_H / 2);
   _camera.lookAt(0, 0, -PLAY_H / 6);
 
-  // ── Lighting ─────────────────────────────────────────────────────────────
-  const ambient = new THREE.AmbientLight(0x112244, 0.8);
+  // ── Lighting — tuned for vivid gem reflections ────────────────────────────
+  // Neutral ambient so gem colors read accurately without colour shift
+  const ambient = new THREE.AmbientLight(0x222233, 0.6);
   _scene.add(ambient);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
-  dirLight.position.set(50, 600, 100);
-  dirLight.castShadow = true;
-  dirLight.shadow.mapSize.set(1024, 1024);
-  _scene.add(dirLight);
+  // Key light — bright white from above-front for sharp gem highlights
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+  keyLight.position.set(80, 700, 200);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(1024, 1024);
+  _scene.add(keyLight);
 
-  // Subtle fill light from the front
-  const fillLight = new THREE.DirectionalLight(0x334466, 0.4);
-  fillLight.position.set(0, 100, 400);
+  // Rim light — cool blue from the opposite side for depth on gem edges
+  const rimLight = new THREE.DirectionalLight(0x88aaff, 0.9);
+  rimLight.position.set(-200, 300, -300);
+  _scene.add(rimLight);
+
+  // Fill light — warm from below-front to catch the gem undersides
+  const fillLight = new THREE.DirectionalLight(0xffeedd, 0.5);
+  fillLight.position.set(0, -100, 500);
   _scene.add(fillLight);
 
   // ── Floor — dark navy plane + glowing grid ────────────────────────────────
@@ -212,21 +222,26 @@ function _initScene(canvas) {
 
 // ── Brick mesh management ─────────────────────────────────────────────────────
 
-const BRICK_3D_H = 22; // height of bricks in 3D world units
+const BRICK_3D_H = 30; // height of bricks in 3D world units — chunkier = more gem-like
 
 function _makeBrickMat(row, isDeath) {
   const THREE = window.THREE;
-  if (isDeath) {
-    // Death bricks look identical to normal ones until revealed
-    return _makeBrickMat(row, false);
-  }
+  if (isDeath) return _makeBrickMat(row, false);
+
   const def = ROW_MAT_DEFS[row % ROW_MAT_DEFS.length];
-  return new THREE.MeshStandardMaterial({
-    color:             def.color,
-    emissive:          def.emissive,
-    emissiveIntensity: def.emissiveIntensity,
-    roughness:         def.roughness,
-    metalness:         def.metalness,
+
+  // MeshPhysicalMaterial with clearcoat gives a polished gem/crystal surface:
+  // the clearcoat layer adds a separate shiny coat on top of the base gem color,
+  // catching highlights independently and giving real depth to the surface.
+  return new THREE.MeshPhysicalMaterial({
+    color:              def.color,
+    emissive:           def.emissive,
+    emissiveIntensity:  def.emissiveIntensity,
+    roughness:          0.05,   // nearly mirror-smooth
+    metalness:          0.05,   // gems aren't metallic — keep low for true color
+    clearcoat:          1.0,    // full polished coating
+    clearcoatRoughness: 0.05,   // smooth clearcoat = sharp reflections
+    reflectivity:       1.0,    // max reflectivity
   });
 }
 
@@ -252,15 +267,15 @@ function _initBricks(bricks) {
     _brickMeshes.set(b.id, mesh);
 
     // ── Floor reflection — mirrored copy below Y=0 with low opacity ─────────
-    const srcDef  = ROW_MAT_DEFS[Math.min(b.row, ROW_MAT_DEFS.length - 1)];
+    const srcDef  = ROW_MAT_DEFS[b.row % ROW_MAT_DEFS.length];
     const refMat  = new THREE.MeshStandardMaterial({
       color:             srcDef.color,
       emissive:          srcDef.emissive,
-      emissiveIntensity: srcDef.emissiveIntensity * 0.6,
-      roughness:         srcDef.roughness,
-      metalness:         srcDef.metalness,
+      emissiveIntensity: srcDef.emissiveIntensity * 0.5,
+      roughness:         0.1,
+      metalness:         0.05,
       transparent:       true,
-      opacity:           0.28,
+      opacity:           0.22,
       depthWrite:        false,   // avoids z-fighting with the transparent floor
     });
     const refMesh = new THREE.Mesh(geo, refMat);
