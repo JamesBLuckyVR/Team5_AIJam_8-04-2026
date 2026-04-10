@@ -117,25 +117,24 @@ function _initScene(canvas) {
   grid.scale.set(CANVAS_W / gridSize, 1, PLAY_H / gridSize);
   _scene.add(grid);
 
-  // ── Cashout zone — prominent green plane at the near (paddle) end ────────
-  // 3D depth scaled proportionally to CASHOUT_H but capped so perspective
-  // distortion stays reasonable when the camera is close.
-  const czW = CANVAS_W;
-  const czD = Math.min(CASHOUT_H, 100);
-  const czGeo = new THREE.PlaneGeometry(czW, czD);
+  // ── Cashout zone — raised 3D block at the near (paddle) end ─────────────
+  const czW      = CANVAS_W;
+  const czD      = Math.min(CASHOUT_H, 100);
+  const czBlockH = 28;  // visible height of the block above the floor
+
+  const czGeo = new THREE.BoxGeometry(czW, czBlockH, czD);
   const czMat = new THREE.MeshStandardMaterial({
     color:             0x0c3a1c,
     emissive:          0x16743a,
-    emissiveIntensity: 0.40,
-    roughness:         0.85,
+    emissiveIntensity: 0.35,
+    roughness:         0.55,
+    metalness:         0.25,
   });
   const czMesh = new THREE.Mesh(czGeo, czMat);
-  czMesh.rotation.x = -Math.PI / 2;
-  czMesh.position.set(0, 0.6, gz(PLAY_H) + czD / 2);
+  czMesh.position.set(0, czBlockH / 2, gz(PLAY_H) + czD / 2);
   _scene.add(czMesh);
 
-  // Canvas texture for the cashout zone — holds "CASHOUT ZONE" label (top half)
-  // and the live payout amount (bottom half), updated every frame.
+  // Canvas texture — "CASHOUT ZONE" label + live payout — sits on top face
   const czTxtCanvas = document.createElement('canvas');
   czTxtCanvas.width  = 1024;
   czTxtCanvas.height = 256;
@@ -148,16 +147,16 @@ function _initScene(canvas) {
   });
   const czTxtMesh = new THREE.Mesh(new THREE.PlaneGeometry(czW, czD), czTxtMat);
   czTxtMesh.rotation.x = -Math.PI / 2;
-  czTxtMesh.position.set(0, 1.2, gz(PLAY_H) + czD / 2);
+  czTxtMesh.position.set(0, czBlockH + 1.2, gz(PLAY_H) + czD / 2);
   _scene.add(czTxtMesh);
 
-  // Thin glowing green edge line separating play area from cashout
-  const edgeGeo = new THREE.BoxGeometry(CANVAS_W, 1.5, 2);
+  // Glowing green edge strip along the front face of the block
+  const edgeGeo = new THREE.BoxGeometry(CANVAS_W, czBlockH + 2, 2);
   const edgeMat = new THREE.MeshStandardMaterial({
     color: 0x27ae60, emissive: 0x27ae60, emissiveIntensity: 0.9,
   });
   const edge = new THREE.Mesh(edgeGeo, edgeMat);
-  edge.position.set(0, 1.5, gz(PLAY_H));
+  edge.position.set(0, czBlockH / 2, gz(PLAY_H));
   _scene.add(edge);
 
   // ── Arena walls — left, right, top ────────────────────────────────────────
