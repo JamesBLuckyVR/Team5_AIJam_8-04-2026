@@ -20,6 +20,8 @@ let _coin3DParticles = [];      // active coin burst meshes
 let _hudCanvas  = null;
 let _hudCtx     = null;
 let _lastGs     = null;         // previous gs reference to detect new game
+let _explosionTex  = null;      // texture for the death burst sprite
+let _deathSprite   = null;      // active explosion sprite mesh
 
 // ── 2D → 3D coordinate helpers ────────────────────────────────────────────────
 // Game X (0…CANVAS_W) → 3D X (−CW/2 … +CW/2)
@@ -189,6 +191,9 @@ function _initScene(canvas) {
   _paddleMesh.castShadow = true;
   _scene.add(_paddleMesh);
 
+  // ── Explosion texture ─────────────────────────────────────────────────────
+  _explosionTex = new THREE.TextureLoader().load('art/explosion.png');
+
   // ── HUD canvas ────────────────────────────────────────────────────────────
   _hudCanvas = document.getElementById("hud-canvas");
   if (_hudCanvas) {
@@ -282,76 +287,80 @@ function _getDeathRevealMat() {
   return _deathRevealMat;
 }
 
-// ── 3D Death burst ────────────────────────────────────────────────────────────
+// ── 3D Death burst — sprite explosion ─────────────────────────────────────────
 
-const BURST_COLORS_3D = [0xff2200, 0xff5500, 0xff8800, 0xffcc00, 0xffffff, 0xaaccff];
-const BURST_DURATION  = 1200;
+const BURST_DURATION = 1200;
 
 function createDeathBurst(x, y) {
   const THREE = window.THREE;
-  const particles = [];
-  const geo = new THREE.SphereGeometry(2.5, 8, 8);
 
-  for (let i = 0; i < 42; i++) {
-    const angle  = Math.random() * Math.PI * 2;
-    const vAngle = (Math.random() - 0.3) * Math.PI;
-    const speed  = 60 + Math.random() * 140;
-    const color  = BURST_COLORS_3D[Math.floor(Math.random() * BURST_COLORS_3D.length)];
-    const mat    = new THREE.MeshStandardMaterial({
-      color, emissive: color, emissiveIntensity: 1.5,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(gx(x), BRICK_3D_H / 2, gz(y));
-    _scene.add(mesh);
-
-    particles.push({
-      mesh,
-      vx:   Math.cos(angle) * Math.cos(vAngle) * speed,
-      vy:   Math.abs(Math.sin(vAngle)) * speed + 30,
-      vz:   Math.sin(angle) * Math.cos(vAngle) * speed,
-      life: 0.55 + Math.random() * 0.45,
-    });
+  // Remove any leftover sprite from a previous round
+  if (_deathSprite) {
+    _scene.remove(_deathSprite);
+    _deathSprite.material.dispose();
+    _deathSprite = null;
   }
-  return { x, y, born: performance.now(), particles };
+
+  if (_explosionTex) {
+    const mat = new THREE.SpriteMaterial({
+      map:         _explosionTex,
+      transparent: true,
+      opacity:     1,
+      blending:    THREE.AdditiveBlending,  // fire colors add onto the dark scene
+      depthWrite:  false,
+    });
+    const sprite = new THREE.Sprite(mat);
+    // Position at the struck brick, slightly above the floor
+    sprite.position.set(gx(x), BRICK_3D_H + 10, gz(y));
+    sprite.scale.set(1, 1, 1);               // starts tiny, grows in _update3DBursts
+    sprite.userData.born = performance.now();
+    _scene.add(sprite);
+    _deathSprite = sprite;
+  }
+
+  // Return the standard burst object (born/particles) so physics.js is unaffected
+  return { x, y, born: performance.now(), particles: [] };
 }
 
 function drawDeathBurst(ctx) {
-  // 3D particles are updated in _update3DBursts during each drawFrame
-  // ctx here is the HUD canvas ctx — draw a screen flash on it
-  if (!deathBurst) return;
+  // Draw a brief red screen flash on the HUD canvas to complement the 3D sprite
+  if (!deathBurst || !ctx) return;
   const age = (performance.now() - deathBurst.born) / BURST_DURATION;
-  if (age >= 1 || !ctx) return;
+  if (age >= 1) return;
 
-  const flashAlpha = Math.max(0, 0.42 * (1 - age / 0.22));
+  const flashAlpha = Math.max(0, 0.5 * (1 - age / 0.25));
   if (flashAlpha > 0) {
     ctx.globalAlpha = flashAlpha;
-    ctx.fillStyle   = "#aa0000";
+    ctx.fillStyle   = "#cc0000";
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.globalAlpha = 1;
   }
 }
 
 function _update3DBursts() {
-  if (!deathBurst) return;
-  const elapsed = (performance.now() - deathBurst.born) / 1000;
-  const age     = elapsed / (BURST_DURATION / 1000);
+  // Animate the explosion sprite: quick scale-up then fade out
+  if (_deathSprite) {
+    const age     = (performance.now() - _deathSprite.userData.born) / BURST_DURATION;
+    const maxSize = 220;
+    // Rapid expansion in the first 40% of the animation, then holds size
+    const scale   = maxSize * Math.min(1, age / 0.4);
+    // Opacity: stays full until ~30% then fades out
+    const opacity = Math.max(0, 1 - Math.pow(Math.max(0, (age - 0.3) / 0.7), 0.6));
 
-  deathBurst.particles.forEach(p => {
-    const pAge = age / p.life;
-    if (pAge >= 1) { p.mesh.visible = false; return; }
-    const alpha = Math.max(0, 1 - Math.pow(pAge, 1.5));
-    p.mesh.position.x = gx(deathBurst.x) + p.vx * elapsed;
-    p.mesh.position.y = BRICK_3D_H / 2 + p.vy * elapsed - 0.5 * 120 * elapsed * elapsed;
-    p.mesh.position.z = gz(deathBurst.y) + p.vz * elapsed;
-    p.mesh.material.opacity       = alpha;
-    p.mesh.material.transparent   = alpha < 1;
-    p.mesh.material.emissiveIntensity = 1.5 * alpha;
-    p.mesh.visible = alpha > 0.01;
-  });
+    _deathSprite.scale.set(scale, scale, 1);
+    _deathSprite.material.opacity = opacity;
 
-  if (age >= 1) {
-    deathBurst.particles.forEach(p => _scene.remove(p.mesh));
-    deathBurst = null;
+    if (age >= 1) {
+      _scene.remove(_deathSprite);
+      _deathSprite.material.dispose();
+      _deathSprite = null;
+    }
+  }
+
+  // Keep deathBurst in sync so physics.js tickDeathBurst works unchanged
+  if (deathBurst) {
+    const age = (performance.now() - deathBurst.born) / BURST_DURATION;
+    if (age >= 1) deathBurst = null;
   }
 }
 
