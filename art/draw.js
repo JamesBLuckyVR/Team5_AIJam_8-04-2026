@@ -15,6 +15,10 @@ let _ballLight  = null;
 let _paddleMesh = null;
 let _brickMeshes       = new Map();   // brick id → Mesh
 let _brickReflections  = new Map();   // brick id → reflected Mesh (below floor)
+let _brickShadows      = new Map();   // brick id → shadow plane on floor
+let _ballShadow        = null;        // shadow circle under the ball
+let _paddleShadow      = null;        // shadow plane under the paddle
+let _shadowMat         = null;        // shared material for all blob shadows
 let _burstParticles = [];       // active death burst particle meshes
 let _coin3DParticles = [];      // active coin burst meshes
 let _hudCanvas  = null;
@@ -98,11 +102,11 @@ function _initScene(canvas) {
   // ── Floor — clamped exactly to play area so nothing is visible past the walls
   const floorGeo = new THREE.PlaneGeometry(CANVAS_W, PLAY_H);
   const floorMat = new THREE.MeshStandardMaterial({
-    color:       0x080c20,
+    color:       0x1a2440,
     roughness:   0.25,
     metalness:   0.75,
     transparent: true,
-    opacity:     0.78,
+    opacity:     0.88,
   });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
@@ -221,6 +225,35 @@ function _initScene(canvas) {
   _paddleMesh.castShadow = true;
   _scene.add(_paddleMesh);
 
+  // ── Shared blob-shadow material ───────────────────────────────────────────
+  _shadowMat = new THREE.MeshBasicMaterial({
+    color:      0x000000,
+    transparent: true,
+    opacity:     0.82,
+    depthWrite:  false,
+  });
+
+  // Ball shadow — circle on the floor, offset in the light's shadow direction
+  _ballShadow = new THREE.Mesh(
+    new THREE.CircleGeometry(BALL_R * 1.54, 24),
+    _shadowMat
+  );
+  _ballShadow.rotation.x  = -Math.PI / 2;
+  _ballShadow.position.y  = 2.0;
+  _ballShadow.renderOrder = 3;
+  _ballShadow.visible     = false;
+  _scene.add(_ballShadow);
+
+  // Paddle shadow — rectangle on the floor, offset in the light's shadow direction
+  _paddleShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(PADDLE_W * 1.1, 24),
+    _shadowMat
+  );
+  _paddleShadow.rotation.x  = -Math.PI / 2;
+  _paddleShadow.position.y  = 2.0;
+  _paddleShadow.renderOrder = 3;
+  _scene.add(_paddleShadow);
+
   // GIF effects are rendered as HTML img elements (see _showGifEffect)
 
   // ── Cashout amount div — positioned via 3D projection every frame ─────────
@@ -286,11 +319,13 @@ function _makeBrickMat(row, isDeath) {
 function _initBricks(bricks) {
   const THREE = window.THREE;
 
-  // Remove old bricks and their reflections
+  // Remove old bricks, reflections and shadows
   _brickMeshes.forEach(m => _scene.remove(m));
   _brickMeshes.clear();
   _brickReflections.forEach(m => _scene.remove(m));
   _brickReflections.clear();
+  _brickShadows.forEach(m => _scene.remove(m));
+  _brickShadows.clear();
 
   const geo = new THREE.BoxGeometry(BRICK_W - 2, BRICK_3D_H, BRICK_H - 2);
 
@@ -325,6 +360,22 @@ function _initBricks(bricks) {
     );
     _scene.add(refMesh);
     _brickReflections.set(b.id, refMesh);
+
+    // ── Blob shadow — hard shadow on floor, offset in key-light shadow direction
+    // Key light at (80, 700, 200): shadows fall left (−x) and away from camera (−z)
+    if (_shadowMat) {
+      const shadowMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(BRICK_W * 0.95, BRICK_H * 0.95),
+        _shadowMat
+      );
+      shadowMesh.rotation.x  = -Math.PI / 2;
+      shadowMesh.renderOrder = 3;
+      const bx = gx(b.x + BRICK_W / 2);
+      const bz = gz(b.y + BRICK_H / 2);
+      shadowMesh.position.set(bx - 4, 2.0, bz + 10);
+      _scene.add(shadowMesh);
+      _brickShadows.set(b.id, shadowMesh);
+    }
   });
 }
 
@@ -509,9 +560,11 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
       if (!mesh) return;
       mesh.visible = b.alive;
 
-      // Keep reflection visibility in sync with the brick
+      // Keep reflection and shadow visibility in sync with the brick
       const refMesh = _brickReflections.get(b.id);
       if (refMesh) refMesh.visible = b.alive;
+      const shadowMesh = _brickShadows.get(b.id);
+      if (shadowMesh) shadowMesh.visible = b.alive;
 
       // While alive, death bricks look identical (handled by same material)
     });
@@ -520,15 +573,24 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   // ── Ball position ─────────────────────────────────────────────────────────
   const ballVisible = gs && (gs.running || phase === "playing");
   _ballMesh.visible = ballVisible;
+  if (_ballShadow) _ballShadow.visible = ballVisible;
   if (ballVisible) {
     _ballMesh.position.set(gx(gs.bx), BALL_R + 3, gz(gs.by));
     _ballLight.position.copy(_ballMesh.position);
+    if (_ballShadow) {
+      _ballShadow.position.x = gx(gs.bx) - 4;
+      _ballShadow.position.z = gz(gs.by) + 8;
+    }
   }
 
   // ── Paddle position ───────────────────────────────────────────────────────
   const padCenterX = paddleX + PADDLE_W / 2;
   const padZ       = PLAY_H - 44;
   _paddleMesh.position.set(gx(padCenterX), 7, gz(padZ));
+  if (_paddleShadow) {
+    _paddleShadow.position.x = gx(padCenterX) - 4;
+    _paddleShadow.position.z = gz(padZ) + 8;
+  }
 
   // ── Update 3D VFX ─────────────────────────────────────────────────────────
   _update3DBursts();
