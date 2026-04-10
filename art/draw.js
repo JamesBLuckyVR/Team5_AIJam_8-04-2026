@@ -445,8 +445,8 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
 
   // Live payout pill
   if (gs && gs.cleared > 0) {
-    const pct = gs.cleared / totalNormal;
-    const cur = (parseFloat(wager) || 0) * mult * payoutCurve(pct);
+    const pct = totalNormal > 0 ? gs.cleared / totalNormal : 0;
+    const cur = getLivePayout(parseFloat(wager) || 0);
     ctx.fillStyle = "rgba(0,0,0,0.60)";
     ctx.beginPath(); ctx.roundRect(CANVAS_W / 2 - 95, 8, 190, 26, 6); ctx.fill();
     ctx.strokeStyle = "rgba(255,210,0,0.35)";

@@ -7,7 +7,7 @@
 
 // Convenience wrapper so other files can call draw() without arguments.
 function draw() {
-  drawFrame(canvas, gs, paddleX, splashes, wager, getTotalNormal(), phase);
+  drawFrame(canvas, gs, paddleX, splashes, wager, getMultiplier(), getTotalNormal(), phase);
 }
 
 // ── Game lifecycle ────────────────────────────────────────────────────────────
