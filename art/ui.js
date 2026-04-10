@@ -76,7 +76,7 @@ function updateUI() {
     }
     const rebetBtn = document.getElementById("death-rebet-btn");
     rebetBtn.textContent = `↺ REBET $${(parseFloat(wager) || 0).toFixed(2)}`;
-    rebetBtn.onclick = startGame;
+    rebetBtn.onclick = () => startGame(true);
   } else if (!showDeath) {
     deathOverlay.classList.add("hidden");
   }
@@ -137,5 +137,5 @@ function renderCashoutCard(r) {
     <div class="co-pct">${r.pct}% of bricks cleared</div>
     <button id="rebet-btn">↺ REBET $${r.wager.toFixed(2)}</button>
   `;
-  document.getElementById("rebet-btn").addEventListener("click", startGame);
+  document.getElementById("rebet-btn").addEventListener("click", () => startGame(true));
 }

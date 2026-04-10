@@ -12,7 +12,10 @@ function draw() {
 
 // ── Game lifecycle ────────────────────────────────────────────────────────────
 
-function startGame() {
+function startGame(skipCountdown) {
+  // skipCountdown must be explicitly true — guards against click Event objects
+  // being passed when the function is used directly as an event handler
+  const _skip = skipCountdown === true;
   const w = parseFloat(wager);
   if (!w || w <= 0 || w > balance) return;
 
@@ -43,16 +46,22 @@ function startGame() {
   const _tn = getTotalNormal();
   if (bricksRemainHud) { bricksRemainHud.textContent = `${_tn} BRICKS REMAIN`; bricksRemainHud.classList.remove("hidden"); }
 
-  stopBGM();           // silence everything before countdown
-  addInputListeners(); // let player move paddle during countdown
-  updateUI();          // hide splash, show game field
-  draw();              // render first frame so bricks are visible
+  stopBGM();
+  addInputListeners();
+  updateUI();
+  draw();
 
-  _runCountdown(() => {
+  if (_skip) {
     gs.running = true;
     startBGM();
     gameLoop();
-  });
+  } else {
+    _runCountdown(() => {
+      gs.running = true;
+      startBGM();
+      gameLoop();
+    });
+  }
 }
 
 function endRound(type, s) {
