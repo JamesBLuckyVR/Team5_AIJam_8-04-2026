@@ -22,6 +22,7 @@ let _hudCtx     = null;
 let _lastGs     = null;         // previous gs reference to detect new game
 let _explosionTex  = null;      // (kept for compat — no longer used for sprites)
 let _deathSprite   = null;      // (kept for compat — no longer used)
+let _czAmountDiv   = null;      // persistent div showing live payout on cashout zone
 
 // ── 2D → 3D coordinate helpers ────────────────────────────────────────────────
 // Game X (0…CANVAS_W) → 3D X (−CW/2 … +CW/2)
@@ -228,6 +229,25 @@ function _initScene(canvas) {
   _scene.add(_paddleMesh);
 
   // GIF effects are rendered as HTML img elements (see _showGifEffect)
+
+  // ── Cashout amount div — positioned via 3D projection every frame ─────────
+  _czAmountDiv = document.createElement('div');
+  _czAmountDiv.style.cssText = [
+    'position:absolute',
+    'pointer-events:none',
+    'font-family:monospace',
+    'font-weight:800',
+    'font-size:30px',
+    'color:#00ff88',
+    'text-shadow:0 0 22px #00ff88,0 0 8px #fff',
+    'transform:translate(-50%,-50%)',
+    'z-index:7',
+    'display:none',
+    'white-space:nowrap',
+  ].join(';');
+  if (_hudCanvas && _hudCanvas.parentElement) {
+    _hudCanvas.parentElement.appendChild(_czAmountDiv);
+  }
 
   // ── HUD canvas ────────────────────────────────────────────────────────────
   _hudCanvas = document.getElementById("hud-canvas");
@@ -470,36 +490,7 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
     ctx.shadowBlur   = 0;
   }
 
-  // ── Live cashout amount on the green zone ─────────────────────────────────
-  // Project the cashout zone centre from 3D world → HUD canvas coords
-  if (gs && gs.running && _camera && window.THREE) {
-    const czD        = Math.min(CASHOUT_H, 100);
-    const czCenterZ  = PLAY_H / 2 + czD / 2;          // gz(PLAY_H) + czD/2
-    const czV        = new window.THREE.Vector3(0, 0.6, czCenterZ).project(_camera);
-    const czSX       = (czV.x + 1) / 2 * CANVAS_W;
-    const czSY       = (1 - czV.y) / 2 * CANVAS_H;
-
-    const cur        = getLivePayout(parseFloat(wager) || 0);
-    const amountStr  = `$${cur.toFixed(2)}`;
-
-    // Pulsing glow: subtle scale with time
-    const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 300);
-
-    ctx.save();
-    ctx.textAlign    = "center";
-    ctx.textBaseline = "middle";
-    ctx.font         = `bold ${Math.round(22 * pulse)}px monospace`;
-    ctx.fillStyle    = "#00ff88";
-    ctx.shadowColor  = "#00ff88";
-    ctx.shadowBlur   = 20;
-    ctx.fillText(amountStr, czSX, czSY);
-    // Second pass for stronger core glow
-    ctx.shadowBlur   = 8;
-    ctx.fillStyle    = "#ffffff";
-    ctx.font         = `bold ${Math.round(20 * pulse)}px monospace`;
-    ctx.fillText(amountStr, czSX, czSY);
-    ctx.restore();
-  }
+  // Cashout amount is rendered via _czAmountDiv (updated in drawFrame)
 
   // Death burst screen flash on HUD canvas
   if (typeof deathBurst !== "undefined" && deathBurst) {
@@ -571,6 +562,27 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
 
   // ── Render 3D scene ───────────────────────────────────────────────────────
   _renderer.render(_scene, _camera);
+
+  // ── Cashout amount div — project czMesh centre to CSS coords ─────────────
+  try {
+    if (_czAmountDiv && window.THREE) {
+      const running = gs && gs.running;
+      _czAmountDiv.style.display = running ? 'block' : 'none';
+      if (running) {
+        const wrap = _czAmountDiv.parentElement;
+        if (wrap) {
+          const czD  = Math.min(CASHOUT_H, 100);
+          const v    = new window.THREE.Vector3(0, 0.6, PLAY_H / 2 + czD / 2).project(_camera);
+          const rect = wrap.getBoundingClientRect();
+          _czAmountDiv.style.left = `${(v.x + 1) / 2 * rect.width}px`;
+          _czAmountDiv.style.top  = `${(1 - v.y) / 2 * rect.height}px`;
+          const pulse = 0.9 + 0.1 * Math.sin(performance.now() / 280);
+          _czAmountDiv.style.fontSize = `${Math.round(30 * pulse)}px`;
+          _czAmountDiv.textContent = `$${getLivePayout(parseFloat(wager) || 0).toFixed(2)}`;
+        }
+      }
+    }
+  } catch (_) {} // never let UI code stop the game loop
 
   // ── HUD canvas (text overlay) ─────────────────────────────────────────────
   _drawHUD(splashes, wager, mult, totalNormal, gs);
