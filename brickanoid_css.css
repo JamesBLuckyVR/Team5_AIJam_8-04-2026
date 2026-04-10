@@ -24,18 +24,15 @@ body { background: #0b0c1e; }
   overflow-y: auto;
 }
 
-/* Panel title */
-.panel-title { text-align: center; padding-bottom: 4px; }
-.panel-title-main {
-  font-size: 22px; font-weight: 800; letter-spacing: 4px;
-  background: linear-gradient(90deg, #a855f7, #22d3ee);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 8px rgba(168,85,247,0.5));
-}
-.panel-title-sub {
-  font-size: 9px; letter-spacing: 3px; color: #4b5563; margin-top: 2px;
-  text-transform: uppercase;
+/* Panel title / logo */
+.panel-title { text-align: center; padding-bottom: 2px; }
+.panel-logo  {
+  width: 100%;
+  max-width: 210px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 10px rgba(168,85,247,0.4));
 }
 
 /* Tabs */
