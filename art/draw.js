@@ -56,13 +56,12 @@ function _initScene(canvas) {
   // Light fog — starts much further so bricks are never fogged out
   _scene.fog = new THREE.Fog(0x07091a, 900, 1600);
 
-  // Camera — positioned above and behind the paddle end, tilted to see the full field
-  // The game field runs from Z=-343 (bricks, far) to Z=343 (cashout, near).
-  // Near-overhead perspective: field reads flat like the 2D version,
-  // but brick/paddle height still gives 3D depth.
-  _camera = new THREE.PerspectiveCamera(52, CANVAS_W / CANVAS_H, 1, 2500);
-  _camera.position.set(0, 1050, 180);
-  _camera.lookAt(0, 0, -80);
+  // Camera — overhead perspective centered on the full play field.
+  // Pushed further back in Z so the cashout zone doesn't dominate the bottom
+  // of the frame, and raised slightly in Y for a more balanced top-down angle.
+  _camera = new THREE.PerspectiveCamera(50, CANVAS_W / CANVAS_H, 1, 2500);
+  _camera.position.set(0, 1150, 260);
+  _camera.lookAt(0, 0, -40);
 
   // ── Lighting ─────────────────────────────────────────────────────────────
   const ambient = new THREE.AmbientLight(0x112244, 0.8);
@@ -98,61 +97,65 @@ function _initScene(canvas) {
   grid.position.y = 0.5;
   _scene.add(grid);
 
-  // ── Cashout zone — green lit plane at the near (paddle) end ──────────────
+  // ── Cashout zone — subtle green plane at the near (paddle) end ───────────
+  // Depth is capped so it doesn't appear enormous from the overhead camera.
   const czW = CANVAS_W;
-  const czD = CASHOUT_H;
+  const czD = Math.min(CASHOUT_H, 40);
   const czGeo = new THREE.PlaneGeometry(czW, czD);
   const czMat = new THREE.MeshStandardMaterial({
-    color:             0x0d3d1a,
-    emissive:          0x1a7a35,
-    emissiveIntensity: 0.5,
-    roughness:         0.8,
+    color:             0x0a2e14,
+    emissive:          0x0e5226,
+    emissiveIntensity: 0.28,
+    roughness:         0.9,
   });
   const czMesh = new THREE.Mesh(czGeo, czMat);
   czMesh.rotation.x = -Math.PI / 2;
   czMesh.position.set(0, 0.6, gz(PLAY_H) + czD / 2);
   _scene.add(czMesh);
 
-  // Glowing green edge line separating play area from cashout
-  const edgeGeo = new THREE.BoxGeometry(CANVAS_W, 2, 3);
+  // Thin glowing green edge line separating play area from cashout
+  const edgeGeo = new THREE.BoxGeometry(CANVAS_W, 1.5, 2);
   const edgeMat = new THREE.MeshStandardMaterial({
-    color: 0x2ecc71, emissive: 0x2ecc71, emissiveIntensity: 1.5,
+    color: 0x27ae60, emissive: 0x27ae60, emissiveIntensity: 0.9,
   });
   const edge = new THREE.Mesh(edgeGeo, edgeMat);
-  edge.position.set(0, 2, gz(PLAY_H));
+  edge.position.set(0, 1.5, gz(PLAY_H));
   _scene.add(edge);
 
   // ── Arena walls — left, right, top ────────────────────────────────────────
+  // Kept short and very transparent so they frame the field without creating
+  // a hard cage outline from the overhead camera angle.
   const wallMat = new THREE.MeshStandardMaterial({
-    color: 0x1a2244, emissive: 0x0a1133, emissiveIntensity: 0.3,
-    transparent: true, opacity: 0.55, roughness: 0.4, metalness: 0.5,
+    color: 0x101830, emissive: 0x060c22, emissiveIntensity: 0.15,
+    transparent: true, opacity: 0.35, roughness: 0.5, metalness: 0.4,
   });
-  const wallH = 40;
+  const wallH = 24;
 
   // Left wall
-  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(6, wallH, PLAY_H + 60), wallMat);
-  leftWall.position.set(gx(0) - 3, wallH / 2, 0);
+  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(5, wallH, PLAY_H + 40), wallMat);
+  leftWall.position.set(gx(0) - 2.5, wallH / 2, 0);
   _scene.add(leftWall);
 
   // Right wall
-  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(6, wallH, PLAY_H + 60), wallMat);
-  rightWall.position.set(gx(CANVAS_W) + 3, wallH / 2, 0);
+  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(5, wallH, PLAY_H + 40), wallMat);
+  rightWall.position.set(gx(CANVAS_W) + 2.5, wallH / 2, 0);
   _scene.add(rightWall);
 
   // Top wall
-  const topWall = new THREE.Mesh(new THREE.BoxGeometry(CANVAS_W + 12, wallH, 6), wallMat);
-  topWall.position.set(0, wallH / 2, gz(0) - 3);
+  const topWall = new THREE.Mesh(new THREE.BoxGeometry(CANVAS_W + 10, wallH, 5), wallMat);
+  topWall.position.set(0, wallH / 2, gz(0) - 2.5);
   _scene.add(topWall);
 
-  // Wall glow edge strips (emissive lines along the top of each wall)
-  const stripMat = new THREE.MeshStandardMaterial({ color: 0x2244aa, emissive: 0x2244aa, emissiveIntensity: 1.0 });
-  const lStrip = new THREE.Mesh(new THREE.BoxGeometry(2, 2, PLAY_H + 60), stripMat);
+  // Subtle glow strips along the top edges of each wall — dimmed so they
+  // read as atmosphere rather than a hard outline.
+  const stripMat = new THREE.MeshStandardMaterial({ color: 0x1a3366, emissive: 0x1a3366, emissiveIntensity: 0.55 });
+  const lStrip = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, PLAY_H + 40), stripMat);
   lStrip.position.set(gx(0) - 0.5, wallH, 0);
   _scene.add(lStrip);
-  const rStrip = new THREE.Mesh(new THREE.BoxGeometry(2, 2, PLAY_H + 60), stripMat.clone());
+  const rStrip = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, PLAY_H + 40), stripMat.clone());
   rStrip.position.set(gx(CANVAS_W) + 0.5, wallH, 0);
   _scene.add(rStrip);
-  const tStrip = new THREE.Mesh(new THREE.BoxGeometry(CANVAS_W + 12, 2, 2), stripMat.clone());
+  const tStrip = new THREE.Mesh(new THREE.BoxGeometry(CANVAS_W + 10, 1.5, 1.5), stripMat.clone());
   tStrip.position.set(0, wallH, gz(0) - 0.5);
   _scene.add(tStrip);
 
