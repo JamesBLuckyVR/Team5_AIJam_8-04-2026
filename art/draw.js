@@ -74,8 +74,8 @@ function _initScene(canvas) {
   // FOV 65° is the key: at 55° the bottom frustum ray misses the cashout
   // zone; 65° extends it far enough to include the full cashout strip.
   _camera = new THREE.PerspectiveCamera(65, CANVAS_W / CANVAS_H, 1, 2500);
-  _camera.position.set(0, 800, CASHOUT_H / 2);
-  _camera.lookAt(0, 0, -PLAY_H / 6);
+  _camera.position.set(0, 800, 124);
+  _camera.lookAt(0, 0, PLAY_H / 6);
 
   // ── Lighting — tuned for vivid gem reflections ────────────────────────────
   // Neutral ambient so gem colors read accurately without colour shift
