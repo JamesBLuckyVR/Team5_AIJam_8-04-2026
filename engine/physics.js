@@ -83,6 +83,9 @@ function gameLoop() {
   const s = gs;
   if (!s || !s.running) return;
 
+  // Apply held arrow / WASD key movement every frame for smooth keyboard control
+  _applyKeyMovement();
+
   // Move ball
   s.bx += s.vx;
   s.by += s.vy;
@@ -187,6 +190,10 @@ function tickDeathBurst() {
 
 // ── Input handlers ────────────────────────────────────────────────────────────
 
+// Keyboard state — track held keys so paddle moves every frame, not per-repeat
+const _keys = { left: false, right: false };
+const PADDLE_KEY_SPEED = 7; // px per frame while key held (~420 px/s at 60 fps)
+
 function onMouseMove(e) {
   const rect   = canvas.getBoundingClientRect();
   const scaleX = CANVAS_W / rect.width;
@@ -194,18 +201,35 @@ function onMouseMove(e) {
   paddleX = Math.max(0, Math.min(CANVAS_W - PADDLE_W, cx * scaleX - PADDLE_W / 2));
 }
 function onKeyDown(e) {
-  if (e.key === "ArrowLeft")  paddleX = Math.max(0, paddleX - 18);
-  if (e.key === "ArrowRight") paddleX = Math.min(CANVAS_W - PADDLE_W, paddleX + 18);
+  if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") _keys.left  = true;
+  if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") _keys.right = true;
+  // Prevent page scrolling with arrow keys during gameplay
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault();
 }
+function onKeyUp(e) {
+  if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") _keys.left  = false;
+  if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") _keys.right = false;
+}
+
+// Called once per game loop tick — applies held-key movement
+function _applyKeyMovement() {
+  if (_keys.left)  paddleX = Math.max(0,                  paddleX - PADDLE_KEY_SPEED);
+  if (_keys.right) paddleX = Math.min(CANVAS_W - PADDLE_W, paddleX + PADDLE_KEY_SPEED);
+}
+
 function addInputListeners() {
   window.addEventListener("mousemove", onMouseMove);
   window.addEventListener("touchmove", onMouseMove);
   window.addEventListener("keydown",   onKeyDown);
+  window.addEventListener("keyup",     onKeyUp);
 }
 function removeInputListeners() {
   window.removeEventListener("mousemove", onMouseMove);
   window.removeEventListener("touchmove", onMouseMove);
   window.removeEventListener("keydown",   onKeyDown);
+  window.removeEventListener("keyup",     onKeyUp);
+  _keys.left = false;
+  _keys.right = false;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
