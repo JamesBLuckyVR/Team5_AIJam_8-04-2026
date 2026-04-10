@@ -119,8 +119,9 @@ body { background: #05060f; }
 /* ── Canvas Area ── */
 #canvas-area {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; padding: 20px;
+  align-items: center; justify-content: center; padding: 10px 16px 8px;
   background: radial-gradient(ellipse at center top, #0d1030 0%, #05060f 70%);
+  min-height: 0;
 }
 #canvas-wrap  { position: relative; }
 
@@ -133,13 +134,19 @@ body { background: #05060f; }
   backdrop-filter: blur(4px);
 }
 #mute-btn:hover { background: rgba(20,15,0,0.85); border-color: rgba(255,210,0,0.55); }
+
+/* Canvas scales to fill the viewport height — width auto-follows the aspect ratio.
+   The Three.js renderer still outputs at CANVAS_W × CANVAS_H resolution; CSS
+   stretches the display without touching any game logic or physics. */
 #game-canvas  {
   display: block; border-radius: 10px;
   border: 1px solid rgba(255,210,0,0.18);
   box-shadow: 0 0 40px rgba(255,180,0,0.08), 0 0 2px rgba(255,210,0,0.25);
+  height: calc(100vh - 56px);
+  width: auto;
   max-width: 100%;
 }
-.ctrl-hint { margin-top: 10px; font-size: 11px; color: #ffffff; }
+.ctrl-hint { margin-top: 6px; font-size: 11px; color: #ffffff; }
 
 /* ── Overlays ── */
 .overlay {
