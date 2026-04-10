@@ -22,6 +22,7 @@ let _hudCtx     = null;
 let _lastGs     = null;         // previous gs reference to detect new game
 let _explosionTex  = null;      // texture for the death burst sprite
 let _deathSprite   = null;      // active explosion sprite mesh
+let _coinSparkTex  = null;      // texture for coin burst sprites
 
 // ── 2D → 3D coordinate helpers ────────────────────────────────────────────────
 // Game X (0…CANVAS_W) → 3D X (−CW/2 … +CW/2)
@@ -224,8 +225,11 @@ function _initScene(canvas) {
   _paddleMesh.castShadow = true;
   _scene.add(_paddleMesh);
 
-  // ── Explosion texture ─────────────────────────────────────────────────────
+  // ── Explosion texture (death burst) ──────────────────────────────────────
   _explosionTex = new THREE.TextureLoader().load('art/explosion.png');
+
+  // ── Coin spark texture (brick hit reward) ─────────────────────────────────
+  _coinSparkTex = new THREE.TextureLoader().load('art/coin_spark.png');
 
   // ── HUD canvas ────────────────────────────────────────────────────────────
   _hudCanvas = document.getElementById("hud-canvas");
@@ -402,36 +406,43 @@ function _update3DBursts() {
   }
 }
 
-// ── 3D Coin burst ─────────────────────────────────────────────────────────────
+// ── 3D Coin burst — green spark sprites ───────────────────────────────────────
 
-const COIN_DURATION = 680;
-const COIN_GRAVITY  = 180;
+const COIN_DURATION = 750;
+const COIN_GRAVITY  = 160;
+
+let _coinSparkTex = null;   // loaded once in _initScene
 
 function createCoinBurst(x, y) {
   const THREE = window.THREE;
   const coins  = [];
-  const count  = 7;
-  const geo    = new THREE.SphereGeometry(4, 10, 10);
+  const count  = 6;
 
   for (let i = 0; i < count; i++) {
-    const spread = ((i / (count - 1)) - 0.5) * (110 * Math.PI / 180);
-    const angle  = -Math.PI / 2 + spread;
-    const speed  = 90 + Math.random() * 70;
-    const mat    = new THREE.MeshStandardMaterial({
-      color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 0.8,
-      roughness: 0.2, metalness: 0.9,
+    // Fan upward with random spread
+    const angle = (-Math.PI / 2) + ((Math.random() - 0.5) * Math.PI * 0.9);
+    const speed = 70 + Math.random() * 90;
+    const size  = 28 + Math.random() * 22;
+
+    const mat = new THREE.SpriteMaterial({
+      map:         _coinSparkTex,
+      transparent: true,
+      opacity:     1,
+      blending:    THREE.AdditiveBlending,
+      depthWrite:  false,
     });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(gx(x), BRICK_3D_H / 2 + 4, gz(y));
-    _scene.add(mesh);
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(size, size, 1);
+    sprite.position.set(gx(x), BRICK_3D_H / 2 + 6, gz(y));
+    _scene.add(sprite);
 
     coins.push({
-      mesh,
-      vx:   Math.cos(angle) * speed * 0.4, // spread in X/Z
-      vy:   Math.abs(Math.sin(angle)) * speed + 40,
-      vz:   Math.cos(angle) * speed * 0.3,
+      mesh: sprite,       // keep 'mesh' key so existing cleanup code works
+      vx:   Math.cos(angle) * speed * 0.5,
+      vy:   Math.abs(Math.sin(angle)) * speed + 50,
+      vz:   (Math.random() - 0.5) * speed * 0.4,
       born: performance.now(),
-      life: 0.55 + Math.random() * 0.45,
+      life: 0.5 + Math.random() * 0.5,
     });
   }
   return { x, y, born: performance.now(), coins };
@@ -448,20 +459,18 @@ function _update3DCoins() {
     const age     = (now - burst.born) / COIN_DURATION;
 
     if (age >= 1) {
-      burst.coins.forEach(c => _scene.remove(c.mesh));
+      burst.coins.forEach(c => { _scene.remove(c.mesh); c.mesh.material.dispose(); });
       return;
     }
 
     burst.coins.forEach(c => {
       const pAge = age / c.life;
       if (pAge >= 1) { c.mesh.visible = false; return; }
-      const alpha = Math.max(0, 1 - Math.pow(pAge, 1.6));
+      const alpha = Math.max(0, 1 - Math.pow(pAge, 1.4));
       c.mesh.position.x = gx(burst.x) + c.vx * elapsed;
-      c.mesh.position.y = BRICK_3D_H / 2 + 4 + c.vy * elapsed - 0.5 * COIN_GRAVITY * elapsed * elapsed;
+      c.mesh.position.y = BRICK_3D_H / 2 + 6 + c.vy * elapsed - 0.5 * COIN_GRAVITY * elapsed * elapsed;
       c.mesh.position.z = gz(burst.y) + c.vz * elapsed;
-      c.mesh.material.emissiveIntensity = 0.8 * alpha;
-      c.mesh.material.transparent = alpha < 1;
-      c.mesh.material.opacity     = alpha;
+      c.mesh.material.opacity = alpha;
       c.mesh.visible = alpha > 0.01;
     });
 
