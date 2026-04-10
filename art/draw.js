@@ -405,7 +405,7 @@ function _update3DBursts() {
 const COIN_DURATION = 700;
 
 function createCoinBurst(x, y) {
-  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/GlintOrange01.gif', 700, 80);
+  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/GlintGreen01.gif', 700, 80);
   return { x, y, born: performance.now(), coins: [] };
 }
 
