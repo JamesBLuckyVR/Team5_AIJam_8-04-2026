@@ -110,13 +110,9 @@ function _runCountdown(onComplete) {
   }
 
   const steps = [
-    { text: 'READY?', cls: 'cd-ready', dur: 1600 },
-    { text: '3',      cls: 'cd-count', dur: 900  },
-    { text: '2',      cls: 'cd-count', dur: 900  },
-    { text: '1',      cls: 'cd-count', dur: 900  },
+    { text: 'READY?', cls: 'cd-ready', dur: 1200 },
     { text: 'GO!',    cls: 'cd-go',    dur: 800,
       sfx: () => {
-        // Stop the countdown music before the airhorn
         try { if (_cdSrc) { _cdSrc.stop(); _cdSrc = null; } } catch (_) {}
         if (typeof sfxAirhorn === 'function') sfxAirhorn();
       }
