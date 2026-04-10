@@ -202,6 +202,14 @@ function gameLoop() {
         deathBurst = createDeathBurst(b.x + BRICK_W / 2, b.y + BRICK_H / 2);
         tickDeathBurst();
         draw();
+        // Earthquake shake on the canvas-wrap
+        const _cw = document.getElementById('canvas-wrap');
+        if (_cw) {
+          _cw.classList.remove('quake');
+          void _cw.offsetWidth; // force reflow to restart animation
+          _cw.classList.add('quake');
+          setTimeout(() => _cw.classList.remove('quake'), 700);
+        }
         endRound("death", s);
         return;
       }
