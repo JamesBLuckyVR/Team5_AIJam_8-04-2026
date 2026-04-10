@@ -34,7 +34,7 @@ const BALL_R   = 7;
 // ── Game balance ──────────────────────────────────────────────────────────────
 // Pixels-per-frame for each speed level (index 0 unused); speed is a gameplay
 // preference only and does not affect payout.
-const SPEED_PX = [0, 3.2, 4.2, 5.4, 6.8, 8.4];
+const SPEED_PX = [0, 0.7, 3.0, 5.4, 6.8, 8.4];
 
 // ── Available options shown in the sidebar selectors ─────────────────────────
 const DEATH_OPTIONS = [5, 8, 10, 12, 15];
