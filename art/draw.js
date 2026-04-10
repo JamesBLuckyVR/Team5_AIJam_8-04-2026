@@ -470,6 +470,37 @@ function _drawHUD(splashes, wager, mult, totalNormal, gs) {
     ctx.shadowBlur   = 0;
   }
 
+  // ── Live cashout amount on the green zone ─────────────────────────────────
+  // Project the cashout zone centre from 3D world → HUD canvas coords
+  if (gs && gs.running && _camera && window.THREE) {
+    const czD        = Math.min(CASHOUT_H, 100);
+    const czCenterZ  = PLAY_H / 2 + czD / 2;          // gz(PLAY_H) + czD/2
+    const czV        = new window.THREE.Vector3(0, 0.6, czCenterZ).project(_camera);
+    const czSX       = (czV.x + 1) / 2 * CANVAS_W;
+    const czSY       = (1 - czV.y) / 2 * CANVAS_H;
+
+    const cur        = getLivePayout(parseFloat(wager) || 0);
+    const amountStr  = `$${cur.toFixed(2)}`;
+
+    // Pulsing glow: subtle scale with time
+    const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 300);
+
+    ctx.save();
+    ctx.textAlign    = "center";
+    ctx.textBaseline = "middle";
+    ctx.font         = `bold ${Math.round(22 * pulse)}px monospace`;
+    ctx.fillStyle    = "#00ff88";
+    ctx.shadowColor  = "#00ff88";
+    ctx.shadowBlur   = 20;
+    ctx.fillText(amountStr, czSX, czSY);
+    // Second pass for stronger core glow
+    ctx.shadowBlur   = 8;
+    ctx.fillStyle    = "#ffffff";
+    ctx.font         = `bold ${Math.round(20 * pulse)}px monospace`;
+    ctx.fillText(amountStr, czSX, czSY);
+    ctx.restore();
+  }
+
   // Death burst screen flash on HUD canvas
   if (typeof deathBurst !== "undefined" && deathBurst) {
     drawDeathBurst(ctx);
