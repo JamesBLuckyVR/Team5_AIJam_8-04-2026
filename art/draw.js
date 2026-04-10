@@ -19,6 +19,7 @@ let _brickShadows      = new Map();   // brick id → shadow plane on floor
 let _ballShadow        = null;        // shadow circle under the ball
 let _paddleShadow      = null;        // shadow plane under the paddle
 let _shadowMat         = null;        // shared material for all blob shadows
+let _gridMat           = null;        // ShaderMaterial for animated rainbow grid
 let _burstParticles = [];       // active death burst particle meshes
 let _coin3DParticles = [];      // active coin burst meshes
 let _hudCanvas  = null;
@@ -113,13 +114,65 @@ function _initScene(canvas) {
   floor.receiveShadow = true;
   _scene.add(floor);
 
-  // Grid lines — sized to match the play area only (no bleed past walls)
-  const gridSize = Math.max(CANVAS_W, PLAY_H);
-  const grid = new THREE.GridHelper(gridSize, 20, 0x0044aa, 0x002266);
-  grid.position.y  = 0.5;
-  // Clip the grid to the play area by scaling Z to match PLAY_H/gridSize
-  grid.scale.set(CANVAS_W / gridSize, 1, PLAY_H / gridSize);
-  _scene.add(grid);
+  // ── Rainbow grid — ShaderMaterial, 20 cells each direction, colour lerps ──
+  _gridMat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite:  false,
+    blending:    THREE.AdditiveBlending,
+    uniforms: { time: { value: 0 } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      varying vec2 vUv;
+
+      vec3 hsl2rgb(float h) {
+        float s = 1.0, l = 0.58;
+        float c = (1.0 - abs(2.0 * l - 1.0)) * s;
+        float x = c * (1.0 - abs(mod(h * 6.0, 2.0) - 1.0));
+        float m = l - c * 0.5;
+        float h6 = h * 6.0;
+        vec3 rgb;
+        if      (h6 < 1.0) rgb = vec3(c, x, 0.0);
+        else if (h6 < 2.0) rgb = vec3(x, c, 0.0);
+        else if (h6 < 3.0) rgb = vec3(0.0, c, x);
+        else if (h6 < 4.0) rgb = vec3(0.0, x, c);
+        else if (h6 < 5.0) rgb = vec3(x, 0.0, c);
+        else               rgb = vec3(c, 0.0, x);
+        return rgb + m;
+      }
+
+      void main() {
+        const float cells  = 12.0;   // integer → grid edges align with play field walls
+        const float lineW  = 0.04;   // fraction of cell occupied by line
+
+        vec2  cell  = fract(vUv * cells);
+        bool  onH   = cell.y < lineW || cell.y > (1.0 - lineW);
+        bool  onV   = cell.x < lineW || cell.x > (1.0 - lineW);
+        if (!onH && !onV) { gl_FragColor = vec4(0.0); return; }
+
+        // Horizontal lines: hue travels along X + time * 0.15
+        vec3  hCol  = hsl2rgb(fract(vUv.x + time * 0.15));
+        // Vertical lines: hue travels along Y + time * 0.05
+        vec3  vCol  = hsl2rgb(fract(vUv.y + time * 0.05));
+
+        vec3  col   = onH ? hCol : vCol;
+        // Half intensity: blend colour 50% toward black
+        col *= 0.5;
+        float alpha = onH ? 0.8 : 0.36;  // 80% opacity (vertical scaled proportionally)
+        gl_FragColor = vec4(col, alpha);
+      }
+    `,
+  });
+  const gridMesh = new THREE.Mesh(new THREE.PlaneGeometry(CANVAS_W, PLAY_H), _gridMat);
+  gridMesh.rotation.x = -Math.PI / 2;
+  gridMesh.position.set(0, 1.0, 0);
+  _scene.add(gridMesh);
 
   // ── Cashout zone — raised 3D block at the near (paddle) end ─────────────
   const czW      = CANVAS_W;
@@ -595,6 +648,11 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, mult, totalNormal, phas
   // ── Update 3D VFX ─────────────────────────────────────────────────────────
   _update3DBursts();
   _update3DCoins();
+
+  // ── Animate rainbow grid ─────────────────────────────────────────────────
+  if (_gridMat) {
+    _gridMat.uniforms.time.value = performance.now() / 1000;
+  }
 
   // ── Render 3D scene ───────────────────────────────────────────────────────
   _renderer.render(_scene, _camera);
