@@ -56,13 +56,15 @@ function _initScene(canvas) {
   // Fog tuned to the field depth — starts past the far wall, fades distant geometry.
   _scene.fog = new THREE.Fog(0x07091a, 700, 1300);
 
-  // Camera — low diagonal perspective anchored to PLAY_H.
-  // Sitting just behind the cashout zone at a moderate height, looking
-  // steeply toward the brick end so the bricks fill the top of the frame.
-  // Lower Y = less overhead angle = more of the "behind the paddle" feeling.
-  _camera = new THREE.PerspectiveCamera(60, CANVAS_W / CANVAS_H, 1, 2500);
-  _camera.position.set(0, 360, PLAY_H / 2 + 60);
-  _camera.lookAt(0, 0, -PLAY_H / 3);
+  // Camera — near-overhead with a gentle tilt toward the bricks.
+  // Horizontally centred over the full canvas (play area + cashout zone):
+  //   camera Z = CASHOUT_H / 2  (midpoint of the cashout strip in 3D)
+  // LookAt is shifted slightly toward the bricks (-PLAY_H/6) so the
+  // field reads top-to-bottom: bricks at top, cashout zone at bottom.
+  // FOV 55° gives just enough width to frame the whole field in one shot.
+  _camera = new THREE.PerspectiveCamera(55, CANVAS_W / CANVAS_H, 1, 2500);
+  _camera.position.set(0, 700, CASHOUT_H / 2);
+  _camera.lookAt(0, 0, -PLAY_H / 6);
 
   // ── Lighting ─────────────────────────────────────────────────────────────
   const ambient = new THREE.AmbientLight(0x112244, 0.8);
