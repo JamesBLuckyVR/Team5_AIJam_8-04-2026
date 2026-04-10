@@ -191,9 +191,12 @@ function sfxWall() {
   });
 }
 
-// ── Deathblock hit — deathblock.wav ──────────────────────────────────────────
+// ── Deathblock hit — both WAVs play simultaneously ────────────────────────────
 
-function sfxDeath() { _playWav('assets/deathblock.wav'); }
+function sfxDeath() {
+  _playWav('assets/deathblock.wav');
+  _playWav('assets/deathblock2.wav');
+}
 
 // ── Cashout — cashout.wav ─────────────────────────────────────────────────────
 

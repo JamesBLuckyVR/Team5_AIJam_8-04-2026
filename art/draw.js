@@ -389,7 +389,7 @@ function showPaddleEffect(px) {
 const BURST_DURATION = 1500;
 
 function createDeathBurst(x, y) {
-  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/deathblock.gif', 1500, 200);
+  _showGifEffect(gx(x), BRICK_3D_H / 2, gz(y), 'assets/deathblock.gif', 1500, 500); // 200 × 250%
   return { x, y, born: performance.now(), particles: [] };
 }
 
