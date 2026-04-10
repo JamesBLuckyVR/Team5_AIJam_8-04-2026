@@ -192,7 +192,7 @@ function tickDeathBurst() {
 
 // Keyboard state — track held keys so paddle moves every frame, not per-repeat
 const _keys = { left: false, right: false };
-const PADDLE_KEY_SPEED = 7; // px per frame while key held (~420 px/s at 60 fps)
+const PADDLE_KEY_SPEED = 14; // px per frame while key held (~840 px/s at 60 fps)
 
 function onMouseMove(e) {
   const rect   = canvas.getBoundingClientRect();
