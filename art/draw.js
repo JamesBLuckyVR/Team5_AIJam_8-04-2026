@@ -158,9 +158,8 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, totalNormal, phase) {
   ctx.fillRect(0, PLAY_H, CANVAS_W, CASHOUT_H);
 
   // Calculate live payout for display in the cashout zone
-  const _czW        = parseFloat(wager) || 0;
-  const _czCleared  = gs ? gs.cleared : 0;
-  const _czPayout   = getLivePayout(_czW, _czCleared);
+  const _czW      = parseFloat(wager) || 0;
+  const _czPayout = getLivePayout(_czW);
   const _showPayout = phase === "playing" || (gs && gs.cleared > 0);
 
   // "CASHOUT ZONE" label — shift up when payout line is shown
@@ -265,7 +264,8 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, totalNormal, phase) {
   live.forEach(sp => {
     const age = (now - sp.born) / 900;
     ctx.globalAlpha   = 1 - Math.pow(age, 1.4);
-    ctx.font          = `bold ${11 + age * 6}px monospace`;
+    const rowScale    = 1 + (ROWS - 1 - (sp.row ?? ROWS - 1)) / (ROWS - 1);
+    ctx.font          = `bold ${Math.round((11 + age * 6) * rowScale)}px monospace`;
     ctx.textAlign     = "center";
     ctx.textBaseline  = "middle";
     ctx.fillStyle     = "#00ff88";
@@ -279,7 +279,7 @@ function drawFrame(canvas, gs, paddleX, splashes, wager, totalNormal, phase) {
   // ── Live payout HUD ───────────────────────────────────────────────────────
   if (gs.cleared > 0) {
     const _w  = parseFloat(wager) || 0;
-    const cur = getLivePayout(_w, gs.cleared);
+    const cur = getLivePayout(_w);
     ctx.fillStyle = "rgba(0,0,0,0.60)";
     ctx.beginPath(); ctx.roundRect(CANVAS_W / 2 - 95, 8, 190, 26, 6); ctx.fill();
     ctx.strokeStyle = "rgba(255,210,0,0.35)";

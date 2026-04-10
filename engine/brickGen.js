@@ -13,7 +13,7 @@ function generateBricks(deathCount, seed) {
   };
 
   const total    = COLS * ROWS;
-  const eligible = Array.from({ length: total - COLS }, (_, i) => i); // exclude bottom row
+  const eligible = Array.from({ length: total }, (_, i) => i); // all rows eligible
 
   // Fisher-Yates shuffle to distribute death blocks fairly
   for (let i = eligible.length - 1; i > 0; i--) {

@@ -49,7 +49,7 @@ function updateUI() {
 
   liveBox.classList.toggle("hidden", phase !== "playing");
   if (phase === "playing") {
-    liveVal.textContent      = `$${getLivePayout(w, bricksCleared).toFixed(2)}`;
+    liveVal.textContent      = `$${getLivePayout(w).toFixed(2)}`;
     bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
   }
 

@@ -32,6 +32,11 @@ function startGame() {
   coinBursts    = [];
   sessionStart  = Date.now();
   bricksCleared = 0;
+  accumulatedProfit = 0;
+  const totalWeight = gs.bricks
+    .filter(b => !b.isDeath)
+    .reduce((sum, b) => sum + getBrickWeight(b.row), 0);
+  brickValueScale = totalWeight > 0 ? w * (getMultiplier() - 1) / totalWeight : 0;
   result        = null;
   phase         = "playing";
 
@@ -48,8 +53,8 @@ function endRound(type, s) {
   const w    = parseFloat(wager) || 0;
   let payout = 0;
   if      (type === "death") payout = 0;
-  else if (type === "drop")  payout = getLivePayout(w, s.cleared);
-  else                       payout = getLivePayout(w, getTotalNormal()); // "clear"
+  else if (type === "drop")  payout = getLivePayout(w);
+  else                       payout = getLivePayout(w); // "clear" — accumulatedProfit = full max
 
   payout  = Math.round(payout * 100) / 100;
   balance = Math.round((balance - w + payout) * 100) / 100;
@@ -142,12 +147,13 @@ function gameLoop() {
       if (Math.min(oL, oR) < Math.min(oT, oB)) s.vx *= -1; else s.vy *= -1;
 
       // Floating payout splash
-      const gain = +getPerBrickProfit(w).toFixed(2);
-      if (gain > 0) splashes.push({ x: b.x + BRICK_W / 2, y: b.y + BRICK_H / 2, val: gain, born: performance.now() });
+      const gain = brickValueScale * getBrickWeight(b.row);
+      accumulatedProfit += gain;
+      if (gain > 0) splashes.push({ x: b.x + BRICK_W / 2, y: b.y + BRICK_H / 2, val: +gain.toFixed(2), row: b.row, born: performance.now() });
 
       // Update live payout display
       bricksCleared            = s.cleared;
-      liveVal.textContent      = `$${getLivePayout(w, s.cleared).toFixed(2)}`;
+      liveVal.textContent      = `$${getLivePayout(w).toFixed(2)}`;
       bricksProgEl.textContent = `${bricksCleared}/${tn} bricks`;
 
       if (s.cleared === tn) {

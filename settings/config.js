@@ -39,6 +39,11 @@ const SPEED_PX = [0, 3.2, 4.2, 5.4, 6.8, 8.4];
 // ── Available options shown in the sidebar selectors ─────────────────────────
 const DEATH_OPTIONS = [5, 10, 15, 20, 25];
 
+// ── Payout distribution ───────────────────────────────────────────────────────
+// Exponential base for row value weighting. Row 0 (top) = most valuable,
+// row ROWS-1 (bottom) = least valuable. Higher Q = steeper distribution.
+const Q_FACTOR = 2.167;   // row 0 (top) = 55% of max profit
+
 // ── Visual palette ────────────────────────────────────────────────────────────
 // One color per brick row. Art team: feel free to change these.
 const BRICK_COLORS = ["#c0392b", "#e67e22", "#f1c40f", "#27ae60", "#2980b9"];

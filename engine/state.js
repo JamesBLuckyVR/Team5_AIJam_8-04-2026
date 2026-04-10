@@ -12,7 +12,9 @@ let speed         = 3;
 let deathCount    = 10;
 let balance       = 1000.00;
 let result        = null;
-let bricksCleared = 0;
+let bricksCleared     = 0;
+let accumulatedProfit = 0;   // profit earned from bricks cleared this round
+let brickValueScale   = 0;   // computed at game start: maxProfit / totalBrickWeight
 
 // ── Live game objects ─────────────────────────────────────────────────────────
 let gs           = null;   // ball + bricks snapshot for the current round
